@@ -68,7 +68,7 @@ GROUP BY
 ;
 
 
--- 2차 직전 1개월 ~ 3개월 전 마지막 HEETS 구매자 대상. 4,077 건 
+-- 2차 직전 1개월 ~ 3개월 전 마지막 HEETS 구매자 대상.
 WITH HEETS_Purchasers AS (
 	-- HEETS 구매한 적이 있는 사람들 마지막달 추출 (테리어 구매한 사람은 제외)
     SELECT 
@@ -128,9 +128,9 @@ GROUP BY
 
 
 
--- 전체 HEETS 구매 내역
+-- YYYYMM 기준 HEETS 구매한 전체내역 
 
--- 3차 직전 4개월 ~ 12개월 전 마지막 HEETS 구매자 대상 17,520 건 
+-- 3차 직전 4개월 ~ 12개월 전 마지막 HEETS 구매자 대상 
 WITH HEETS_Purchasers AS (
 	-- HEETS 구매한 적이 있는 사람들 마지막달 추출 (테리어 구매한 사람은 제외)
     SELECT 
@@ -189,7 +189,7 @@ GROUP BY
 ;
 
 
--- 4차 직전 1개월 ~ 3개월 전 마지막 HEETS 구매자 대상. 4,077 건 
+-- 4차 직전 1개월 ~ 3개월 전 마지막 HEETS 구매자 대상.
 WITH HEETS_Purchasers AS (
 	-- HEETS 구매한 적이 있는 사람들 마지막달 추출 (테리어 구매한 사람은 제외)
     SELECT 
