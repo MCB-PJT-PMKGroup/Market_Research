@@ -48,10 +48,11 @@ where 1=1
 GROUP BY 
     a.engname, a.id
 HAVING 
-    -- "in" 상태: 3월에는 구매하고 2월에는 구매하지 않음
+    -- "in" 상태: 3월에는 구매하고 2월에는 다른 제품을 구매한 경우
     (SUM(CASE WHEN a.YYYYMM = '202403' THEN 1 ELSE 0 END) > 0
     AND SUM(CASE WHEN a.YYYYMM = '202402' THEN 1 ELSE 0 END) = 0
     AND EXISTS (
+        -- 2월에 구매한 이력이 있는 경우
         SELECT 1
         FROM cx.fct_CC_purchases_monthly c
         where a.id = c.id
@@ -60,10 +61,11 @@ HAVING
         )
 	)
     OR
-    -- "out" 상태: 2월에는 구매하고 3월에는 구매하지 않음
+    -- "out" 상태: 2월에는 구매하고 3월에는 다른 제품을 구매한 경우
     (SUM(CASE WHEN a.YYYYMM = '202402' THEN 1 ELSE 0 END) > 0
     AND SUM(CASE WHEN a.YYYYMM = '202403' THEN 1 ELSE 0 END) = 0
     AND EXISTS (
+    	-- 3월에 구매한 이력이 있는 경우
         SELECT 1
         FROM cx.fct_CC_purchases_monthly c
         where a.id = c.id
@@ -103,7 +105,7 @@ from (
 	select b.engname, 
 		--count( a.id) as Purchaser_cnt, 
 		case 
-			when b.YYYYMM = '202403' and  a.[Out] > 0 then sum(b.quantity) 
+			when b.YYYYMM = '202403' and a.[Out] > 0 then sum(b.quantity) 
 		end as Out_cnt,
 		case 
 			when b.YYYYMM = '202402' and a.[In] > 0 then sum(b.quantity) 
@@ -144,7 +146,7 @@ group by CIGATYPE, New_Flavorseg, New_TARSEGMENTAT, THICKSEG
 select distinct THICKSEG from cx.product_master_temp ;
 where New_FLAVORSEG ='New Taste' and New_TARSEGMENTAT ='1MG' and THICKSEG ='SSL';
 
--- 2월, 3월 중에 구매했는지 데이터 확인 
+-- 데이터 확인 
 select * from cx.fct_CC_purchases_monthly
 where 1=1 --engname ='DUNHILL 1MG'
 and YYYYMM in ('202402', '202403')
