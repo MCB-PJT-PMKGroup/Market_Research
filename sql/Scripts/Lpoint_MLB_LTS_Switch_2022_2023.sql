@@ -84,3 +84,32 @@ group by rollup(b.cigatype, b.New_FLAVORSEG, b.New_TARSEGMENTAT)
 
 ;
 
+
+WITH temp AS(
+	SELECT 
+		b.cigatype,
+	    b.ProductFamilyCode,
+	    b.New_TARSEGMENTAT,
+		a.id,
+	    SUM(CASE WHEN left(a.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) AS [Out],
+	    SUM(CASE WHEN left(a.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) AS [In]
+--	into cx.agg_MLB_LTS_Switch
+	FROM 
+	    cx.fct_K7_Monthly a
+	    	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)
+	where 1=1
+	   	and left(a.YYYYMM, 4) in ('2022', '2023')
+	    AND b.ProductFamilyCode = 'MLB' and b.New_TARSEGMENTAT = 'LTS'
+	GROUP BY 
+	    b.cigatype, b.ProductFamilyCode, b.New_TARSEGMENTAT,  a.id
+	HAVING 
+	    -- "in" 상태: 2023년 에는 구매하고 2022년에는 구매하지 않음
+	    (SUM(CASE WHEN left(a.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) > 0
+	    AND SUM(CASE WHEN left(a.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) > 0)
+)
+select 
+	ProductFamilyCode, New_TARSEGMENTAT,
+	count(distinct id) as Purchaser_cnt
+from temp
+group by ProductFamilyCode, New_TARSEGMENTAT
+;
