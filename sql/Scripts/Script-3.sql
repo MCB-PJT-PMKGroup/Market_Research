@@ -70,6 +70,15 @@ GROUP BY
         WHEN CC_Purchased = 0 AND LIL_Purchased = 0 AND GLO_Purchased = 0 THEN 'HEETS Only'
     END
  ;
+	CASE 
+	    WHEN CC_Purchased = 0 AND FIIT_Purchased = 0 AND MIIX_Purchased = 0 AND AIIM_Purchased = 0 AND GLO_Purchased = 0 THEN 'HEETS Only'
+	    ELSE 'HEETS' + 
+	        CASE WHEN CC_Purchased = 1 THEN ' + CC' ELSE '' END +
+	        CASE WHEN FIIT_Purchased = 1 THEN ' + FIIT' ELSE '' END +
+	        CASE WHEN MIIX_Purchased = 1 THEN ' + MIIX' ELSE '' END +
+	        CASE WHEN AIIM_Purchased = 1 THEN ' + AIIM' ELSE '' END +
+	        CASE WHEN GLO_Purchased = 1 THEN ' + GLO' ELSE '' END
+	END
 
 	-- 1년 내에 HEETS 구매한 적이 있는 사람들 마지막달 추출 (테리어 구매한 사람은 제외)
     SELECT 

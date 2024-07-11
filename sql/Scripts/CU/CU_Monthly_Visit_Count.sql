@@ -75,20 +75,43 @@ from MonthlyPurchases
 group by monthly_visit_cnt
 ;
 
--- 데이터 검증
-select * 
-from cu.Fct_BGFR_PMI_Monthly
-where cust_id ='b283e27edf50a7c1f1e0e88ffdb6159d8f9da52bcfbf3c525a63707ebe7515b3';
-
-
-
-select * 
-from cu.dim_CU_master dcm ;
-where PROD_ID ='0000088022994';
-
-
-alter table cx.fct_K7_Monthly add pack_qty float null;
-
-update cx.fct_K7_Monthly 
-SET 
-from cx.fct_K7_Monthly
+WITH MonthlyPurchases AS (
+    SELECT
+        CUST_ID,
+        COUNT(DISTINCT YM_CD) AS visit_cnt,
+        MIN(YM_CD) AS first_visit,
+        MAX(YM_CD) AS last_visit
+    FROM cu.Fct_BGFR_PMI_Monthly
+    GROUP BY CUST_ID
+    HAVING MIN(YM_CD) != MAX(YM_CD) -- 최소 2번 이상, 다른 월에 구매해야 함.
+),
+PivotData AS (
+    SELECT
+        first_visit,
+        last_visit,
+        COUNT(*) AS total_Purchaser_cnt
+    FROM MonthlyPurchases
+    GROUP BY first_visit, last_visit
+)
+SELECT
+    first_visit,
+    SUM(CASE WHEN last_visit = '202301' THEN total_Purchaser_cnt ELSE 0 END) AS "202301",
+    SUM(CASE WHEN last_visit = '202302' THEN total_Purchaser_cnt ELSE 0 END) AS "202302",
+	SUM(CASE WHEN last_visit = '202303' THEN total_Purchaser_cnt ELSE 0 END) AS "202303",
+    SUM(CASE WHEN last_visit = '202304' THEN total_Purchaser_cnt ELSE 0 END) AS "202304",
+	SUM(CASE WHEN last_visit = '202305' THEN total_Purchaser_cnt ELSE 0 END) AS "202305",
+    SUM(CASE WHEN last_visit = '202306' THEN total_Purchaser_cnt ELSE 0 END) AS "202306",
+	SUM(CASE WHEN last_visit = '202307' THEN total_Purchaser_cnt ELSE 0 END) AS "202307",
+    SUM(CASE WHEN last_visit = '202308' THEN total_Purchaser_cnt ELSE 0 END) AS "202308",
+	SUM(CASE WHEN last_visit = '202309' THEN total_Purchaser_cnt ELSE 0 END) AS "202309",
+    SUM(CASE WHEN last_visit = '202310' THEN total_Purchaser_cnt ELSE 0 END) AS "202310",
+	SUM(CASE WHEN last_visit = '202311' THEN total_Purchaser_cnt ELSE 0 END) AS "202311",
+    SUM(CASE WHEN last_visit = '202312' THEN total_Purchaser_cnt ELSE 0 END) AS "202312",
+	SUM(CASE WHEN last_visit = '202401' THEN total_Purchaser_cnt ELSE 0 END) AS "202401",
+    SUM(CASE WHEN last_visit = '202402' THEN total_Purchaser_cnt ELSE 0 END) AS "202402",
+	SUM(CASE WHEN last_visit = '202403' THEN total_Purchaser_cnt ELSE 0 END) AS "202403",
+    SUM(CASE WHEN last_visit = '202404' THEN total_Purchaser_cnt ELSE 0 END) AS "202404",
+    SUM(CASE WHEN last_visit = '202405' THEN total_Purchaser_cnt ELSE 0 END) AS "202405"
+FROM PivotData
+GROUP BY first_visit
+ORDER BY first_visit;
