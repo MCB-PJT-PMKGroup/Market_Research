@@ -6,7 +6,6 @@
 			"driver": "microsoft",
 			"name": "BPDA",
 			"save-password": true,
-			"virtual-model-id": "microsoft-1902dde49e2-105e315ebf0f0860",
 			"configuration": {
 				"host": "siakr_dwh31.tdisf-prd.eu-west-1.aws.private-pmideep.biz",
 				"port": "49600",
@@ -23,6 +22,10 @@
 			},
 			"extensions": {
 				"dashboards": "\u003cdashboardList\u003e\u003cdashboards id\u003d\"dd\" name\u003d\"dd\"\u003e\u003cview initDefaultCharts\u003d\"false\"/\u003e\u003c/dashboards\u003e\u003c/dashboardList\u003e"
+			},
+			"custom-properties": {
+				"resultset.confirm.beforeSave": "false",
+				"resultset.datetime.editor": "false"
 			}
 		}
 	},

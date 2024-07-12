@@ -41,53 +41,37 @@
 	    	and a.product_code != x.product_code
 	        )
 	    );
-	    
 	   
---PLTHYB1	2956
---PLTKSB	15890
---PLTMLD	6059
---PLTONE	7830
---PLTHYB5	11382	   
-   select Productcode , count(*)
-   from cx.agg_PLT_CC_Switch
-   group by Productcode ;
-   
-  
--- CC Switching 작업
--- Total CC/HnB Count 출력
-select  
-	t.ProductCode,
+--88013121	PARLIAMENT AQUA 5
+--88014463	PARLIAMENT AQUA 3
+--88013114	PARLIAMENT ONE
+--88017693	PARLIAMENT HYBRID
+--88017624	PARLIAMENT HYBRID 5
+SELECT distinct product_code , b.engname
+FROM BPDA.cx.agg_PLT_CC_Switch2 a
+	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id);
+	   
+	   
+select
 	b.cigatype,
-	b.New_FLAVORSEG,
-	b.New_TARSEGMENTAT,
-	'',	-- 엑셀 공백
-	count(distinct 
-	case 
-		when left(a.YYYYMM, 4) = '2023' and t.[Out] > 0 then t.id
-	end ) as Out_Purchaser_cnt,
-	count(distinct 
-	case 
-		when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then t.id
-	end ) as In_Purchaser_cnt, 
+	b.Engname,
+	b.New_Flavorseg,
+	b.New_Tarsegmentat,
+	b.THICKSEG,
+	count(DISTINCT case when left(a.YYYYMM, 4) = '2023' and t.[Out] > 0 then t.id end ) as Out_Purchaser_Cnt,
+	count(DISTINCT case when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then t.id end ) as In_Purchaser_Cnt,
 	'',
 	'',
 	'',
-	sum(case 
-		when left(a.YYYYMM, 4) = '2023' and t.[Out] > 0 then a.buy_ct * a.pack_qty 
-	end)as Out_quantity,
-	sum(case 
-		when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then a.buy_ct * a.pack_qty 
-	end) as In_quantity
-from 
-	cx.agg_PLT_CC_Switch t
-		join cx.fct_K7_Monthly a on a.id = t.id AND 4 < LEN(a.id) and left(a.YYYYMM, 4) in ('2022', '2023')
-		join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' AND b.cigatype != 'CSV' 
-where 
---	and b.ProductFamilyCode != t.ProductFamilyCode
-	 b.Productcode != t.Productcode 
-group by rollup(t.ProductCode, b.cigatype, b.New_FLAVORSEG, New_TARSEGMENTAT)
+	sum(case when left(a.YYYYMM, 4) = '2023' and t.[Out] > 0 then a.buy_ct * a.Pack_qty end ) as Out_Quantity,
+	sum(case when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then a.buy_ct * a.Pack_qty end ) as In_Quantity
+from cx.agg_MLB_LTS_Switch  t
+	join cx.fct_K7_Monthly a on t.id = a.id and 4 < len(a.id) and left(a.YYYYMM, 4) in ('2022', '2023') and a.product_code not in(t.product_code) 
+	join cx.product_master_temp b on a.Product_code = b.prod_id and b.CIGADEVICE ='CIGARETTES' and b.CIGATYPE != 'CSV' 
+WHERE t.product_code = '88017693'
+group by grouping sets (( b.cigatype, b.Engname, b.New_Flavorseg, b.New_Tarsegmentat, b.THICKSEG), (b.cigatype), ())
 ;
-
+	   
 
 
 -- 2022년 ~ 2023년동안 지속적으로 동일한 제품을 이용한 고객

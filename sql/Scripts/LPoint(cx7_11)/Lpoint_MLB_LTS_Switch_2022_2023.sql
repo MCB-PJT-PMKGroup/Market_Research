@@ -21,11 +21,11 @@
 	GROUP BY 
 	    b.cigatype, b.ProductFamilyCode, b.Productcode,  a.id
 	HAVING 
-	    -- "in" 상태: 2023년 에는 구매하고 2022년에는 구매하지 않음
+	    -- In : 2022년도에는 구매하지 않고 2023년도에는 해당 제품을 구매하여 IN
 	    (SUM(CASE WHEN left(a.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) > 0
 	    AND SUM(CASE WHEN left(a.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) = 0
 	    AND EXISTS (
-	        -- 2022년에 구매한 이력이 있는 경우
+	        -- 2022년에 다른 제품을 구매한 사람
 	        SELECT 1
 	        FROM cx.fct_K7_Monthly x
 	        	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
@@ -35,11 +35,11 @@
 	        )
 		)
 	    OR
-	    -- "out" 상태: 2022년 에는 구매하고 2023년에는 구매하지 않음
+	    -- Out : 2022년도에는 구매했지만 2023년도에는 해당 제품을 구매하지 않아 Out
 	    (SUM(CASE WHEN  left(a.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) > 0
 	    AND SUM(CASE WHEN left(a.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) = 0
 	    AND EXISTS (
-	    	-- 2023년에 구매한 이력이 있는 경우
+	    	-- 2023년에는 다른 제품을 구매한 사람
 	        SELECT 1
 	        FROM cx.fct_K7_Monthly x
 	        	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
@@ -83,6 +83,28 @@ where b.ProductFamilyCode != t.ProductFamilyCode
 group by rollup(b.cigatype, b.New_FLAVORSEG, b.New_TARSEGMENTAT)
 
 ;
+
+-- != 안쓰고할 방법
+select
+	b.cigatype,
+	b.Engname,
+	b.New_Flavorseg,
+	b.New_Tarsegmentat,
+	b.THICKSEG,
+	count(DISTINCT case when left(a.YYYYMM, 4) = '2023' and t.[Out] > 0 then t.id end ) as Out_Purchaser_Cnt,
+	count(DISTINCT case when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then t.id end ) as In_Purchaser_Cnt,
+	'',
+	'',
+	'',
+	sum(case when left(a.YYYYMM, 4) = '2023' and t.[Out] > 0 then a.buy_ct * a.Pack_qty end ) as Out_Quantity,
+	sum(case when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then a.buy_ct * a.Pack_qty end ) as In_Quantity
+from cx.agg_MLB_LTS_Switch  t
+	join cx.fct_K7_Monthly a on t.id = a.id and 4 < len(a.id) and left(a.YYYYMM, 4) in ('2022', '2023')
+	join cx.product_master_temp b on a.Product_code = b.prod_id and b.CIGADEVICE ='CIGARETTES' and b.CIGATYPE != 'CSV'  and b.ProductFamilyCode not in(t.ProductFamilyCode) 
+WHERE t.ProductFamilyCode = 'MLB'
+group by grouping sets (( b.cigatype, b.Engname, b.New_Flavorseg, b.New_Tarsegmentat, b.THICKSEG), (b.cigatype), ())
+;
+
 
 
 WITH temp AS(
