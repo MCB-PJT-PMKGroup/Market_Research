@@ -7,9 +7,9 @@ SELECT
     a.product_code,
 	a.id,
 	b.ProductFamilyCode , b.New_TARSEGMENTAT,
-    SUM(CASE WHEN left(a.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) AS [Out],
-    SUM(CASE WHEN left(a.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) AS [In]
---into cx.agg_MLB_LTS_Switch2
+	sum(case when left(a.YYYYMM, 4) = '2022' then a.buy_ct * a.pack_qty else 0 end) as [Out],
+	sum(case when left(a.YYYYMM, 4) = '2023' then a.buy_ct * a.pack_qty else 0 end) as [In]
+--into cx.agg_MLB_LTS_Switch4
 FROM 
     cx.fct_K7_Monthly a
     	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)
@@ -65,7 +65,11 @@ HAVING
 
 
 
-
+select *
+ FROM cx.fct_K7_Monthly x
+	    	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
+where x.product_code  ='88019963'
+and left(x.YYYYMM ,4) ='2022';
 
 
 -- cigatype, Taste, Tar CC Switching 작업
@@ -85,11 +89,12 @@ select
 		when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then a.buy_ct * a.pack_qty 
 	end) as In_quantity
 from 
-	cx.agg_MLB_LTS_Switch2 t
+	cx.agg_MLB_LTS_Switch t
 		join cx.fct_K7_Monthly a on a.id = t.id AND 4 < LEN(a.id) and left(a.YYYYMM, 4) in ('2022', '2023') and a.product_code not in( t.product_code)
 		join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' AND b.cigatype != 'CSV' 
 group by rollup(b.cigatype, b.New_FLAVORSEG, b.New_TARSEGMENTAT)
 ;
+
 
 
 -- SKU 별 Switching In/Out
@@ -106,22 +111,23 @@ select
 	'',
 	sum(case when left(a.YYYYMM, 4) = '2023' and t.[Out] > 0 then a.buy_ct * a.Pack_qty end ) as Out_Quantity,
 	sum(case when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then a.buy_ct * a.Pack_qty end ) as In_Quantity
-from cx.agg_MLB_LTS_Switch2  t
+from cx.agg_MLB_LTS_Switch  t
 	join cx.fct_K7_Monthly a on t.id = a.id and 4 < len(a.id) and left(a.YYYYMM, 4) in ('2022', '2023')  and a.product_code not in( t.product_code)
 	join cx.product_master_temp b on a.Product_code = b.prod_id and b.CIGADEVICE ='CIGARETTES' and b.CIGATYPE != 'CSV'
-where (b.ProductFamilyCode != 'MLB' or b.New_TARSEGMENTAT != 'LTS') --b.prod_id not in (t.product_code)
+where (b.ProductFamilyCode != 'MLB' or b.New_TARSEGMENTAT != 'LTS')
 group by grouping sets (( b.cigatype, b.Engname, b.New_Flavorseg, b.New_Tarsegmentat, b.THICKSEG), (b.cigatype), ())
 ;
 
 
 
---  2022년 ~ 2023년동안 지속적으로 동일한 제품을 이용한 고객
+--  2022년 ~ 2023년동안 지속적으로 동일한 제품을 이용한 고객 Continuous Purchaser Count,	Pack Count
 WITH temp AS(
 	SELECT 
 		b.cigatype,
 	    b.ProductFamilyCode,
 	    b.New_TARSEGMENTAT,
 		a.id,
+		sum(a.buy_ct * a.pack_qty) as sale_pack_cnt,
 	    SUM(CASE WHEN left(a.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) AS [Out],
 	    SUM(CASE WHEN left(a.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) AS [In]
 	FROM 
@@ -131,7 +137,7 @@ WITH temp AS(
 	   	and left(a.YYYYMM, 4) in ('2022', '2023')
 	    AND b.ProductFamilyCode = 'MLB' and b.New_TARSEGMENTAT = 'LTS'
 	GROUP BY 
-	    b.cigatype, b.ProductFamilyCode, b.New_TARSEGMENTAT,  a.id
+	    b.cigatype, b.ProductFamilyCode, b.New_TARSEGMENTAT, a.id
 	HAVING 
 	    -- "in/Out" 상태: 2023년에는 구매하고 2022년에도 구매함	
 	    (SUM(CASE WHEN left(a.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) > 0
@@ -139,8 +145,31 @@ WITH temp AS(
 )
 select 
 	ProductFamilyCode, New_TARSEGMENTAT,
-	count(distinct id) as Purchaser_cnt
+	count(distinct id) as Purchaser_cnt,
+	sum(sale_pack_cnt) as pack_cnt
 from temp
 group by ProductFamilyCode, New_TARSEGMENTAT
 ;
 
+	   
+	   
+-- In/Out별 구매자수, 총 구매 팩수 
+select  
+	t.ProductFamilyCode, t.New_TARSEGMENTAT,
+	case 
+		when t.[Out] > 0 then '2022'
+		when t.[In] > 0 then '2023'		
+	end year,
+	count(DISTINCT case when t.[Out] > 0 then t.id end ) as Out_Purchaser_Cnt,
+	count(DISTINCT case when t.[In] > 0 then t.id end ) as In_Purchaser_Cnt,
+	sum(case when  t.[Out] > 0 then t.[Out] end ) as Out_Quantity,
+	sum(case when t.[In] > 0 then t.[In] end ) as In_Quantity
+from 
+	cx.agg_MLB_LTS_Switch t
+group by 	
+	t.ProductFamilyCode, t.New_TARSEGMENTAT, 
+	case 
+		when t.[Out] > 0 then '2022'
+		when t.[In] > 0 then '2023'		
+	end
+;

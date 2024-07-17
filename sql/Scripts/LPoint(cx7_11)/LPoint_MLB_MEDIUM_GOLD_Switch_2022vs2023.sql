@@ -3,18 +3,13 @@
 --아래 지속 구매자 데이터 및 2022 VS. 2023 SWITCHING자료 동일 포맷으로 작업해주시면 됩니다.
 --88011745	MARLBORO GOLD ORIGINAL	말보로 골드 오리지널
 --88011721	MARLBORO MEDIUM	말보로 미디엄
-select PROD_ID, count(*)
-from cx.product_master_temp 
-group by PROD_ID
-having count(*) > 1;
-
 --26,581
 SELECT 
     a.product_code,
 	a.id,
 	b.ProductFamilyCode , b.Productcode,
-	sum(case when left(a.YYYYMM, 4) = '2022' then 1 else 0 end) as [Out],
-	sum(case when left(a.YYYYMM, 4) = '2023' then 1 else 0 end) as [In]
+	sum(case when left(a.YYYYMM, 4) = '2022' then a.buy_ct * a.pack_qty else 0 end) as [Out],
+	sum(case when left(a.YYYYMM, 4) = '2023' then a.buy_ct * a.pack_qty else 0 end) as [In]
 --into cx.agg_MLB_CC_Switch
 FROM cx.fct_K7_Monthly a
 	join cx.product_master_temp b on a.Product_code = b.prod_id and b.CIGADEVICE ='CIGARETTES' and b.CIGATYPE != 'CSV' and 4 < len(a.id) 
@@ -24,7 +19,7 @@ where
 	and b.ProductFamilyCode = 'MLB' and b.Productcode in ('MLBGLD', 'MMEDFT')
 	--2022, 2023년 모두 구매한 사람은 제외
     and a.id not in 
-    (	
+    (
 	    SELECT 
 			x.id
 		FROM cx.fct_K7_Monthly x
@@ -70,13 +65,14 @@ having
 	);
 
 
+
 -- cigatype, Taste, Tar CC Switching 작업
 select  
 	b.cigatype,	
 	b.New_FLAVORSEG,
 	b.New_TARSEGMENTAT,
-	count(distinct case when left(a.YYYYMM, 4) = '2023' and t.[out] > 0 then t.id end ) as Out_Purchaser_Cnt,
-	count(distinct case when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then t.id end ) as In_Purchaser_Cnt,
+	count(distinct case when left(a.YYYYMM, 4) = '2023' and t.[out] > 0 then t.id end ) as Out_Purchaser_Cnt,		-- Out 한 사람들이 2023년도에 다른 제품 구매자수
+	count(distinct case when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then t.id end ) as In_Purchaser_Cnt,			-- In 한 사람들이 2022년도에 다른 제품 구매자수
 	'',
 	'',
 	'',
@@ -93,6 +89,7 @@ from
 WHERE t.product_code = '88011745'
 group by grouping sets ((b.cigatype, b.New_FLAVORSEG, b.New_TARSEGMENTAT),  (b.cigatype, b.New_FLAVORSEG),  (b.cigatype), ())
 ;
+
 
 
 -- SKU 별 Switching In/Out
@@ -117,21 +114,15 @@ group by grouping sets (( b.cigatype, b.Engname, b.New_Flavorseg, b.New_Tarsegme
 ;
 
 
---28,298
-select product_code, count(case when [Out]>0 then 1 end ) out_cnt, count(case when [In]>0 then 1 end ) In_cnt, count(*)
-FROM cx.agg_MLB_CC_Switch 
-group by product_code 
- ;
 
-select * from cx.product_master_temp ;
- 
---  2022년 ~ 2023년동안 지속적으로 동일한 제품을 이용한 고객
+--  2022년 ~ 2023년동안 지속적으로 동일한 제품을 이용한 고객 Continuous Purchaser Count,	Pack Count
 with temp as (
 	SELECT 
 		b.cigatype,
 	    b.ProductFamilyCode,
 	    b.engname,
 		a.id,
+		sum(a.buy_ct * a.pack_qty) as sale_pack_cnt,
 	    SUM(CASE WHEN left(a.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) AS [Out],
 	    SUM(CASE WHEN left(a.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) AS [In]
 	FROM 
@@ -142,17 +133,33 @@ with temp as (
 	    AND b.ProductFamilyCode ='MLB' and b.Productcode in ('MLBGLD', 'MMEDFT')
 	GROUP BY 
 	    b.cigatype, b.ProductFamilyCode, b.engname,  a.id
-	HAVING    
+	HAVING   
 	 	-- 2022년에 구매하고 2023년에도 구매한 사람들
 	    (SUM(CASE WHEN  left(a.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) > 0
 	    AND SUM(CASE WHEN left(a.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) > 0)
 )
 select 
 	engname, 
-	count(distinct id) as Purchaser_cnt
+	count(distinct id) as Purchaser_cnt,
+	sum(sale_pack_cnt) as pack_cnt
 from temp
 group by engname
 ;
 
 
+
+-- In/Out별 구매자수, 총 구매 팩수 
+select  
+	b.engname,
+	left(a.yyyymm,4) year,
+	count(DISTINCT case when t.[Out] > 0 then t.id end ) as Out_Purchaser_Cnt,
+	count(DISTINCT case when t.[In] > 0 then t.id end ) as In_Purchaser_Cnt,
+	sum(case when t.[Out] > 0 then a.buy_ct * a.Pack_qty end ) as Out_Quantity,
+	sum(case when t.[In] > 0 then a.buy_ct * a.Pack_qty end ) as In_Quantity
+from 
+	cx.agg_MLB_CC_Switch t
+		join cx.fct_K7_Monthly a on a.id = t.id AND 4 < LEN(a.id) and left(a.YYYYMM, 4) in ('2022', '2023') and a.product_code = t.product_code
+		join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' AND b.cigatype != 'CSV'
+group by b.engname, left(a.yyyymm,4)
+;
 
