@@ -51,7 +51,7 @@ where 1=1
 select * 
 from  cx.fct_K7_Monthly x
 	    join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
-where x.id ='0EB158369F1136DF180A2BDFDE71104681D6F536781B90B4F0CE8D44558D473C'
+where x.id ='2F32E9AB03B9C9D3D9DC59A7BF76CC4506F491DDCE046B097D2A785D484AB021'
 order by de_dt desc 
 ;
 

@@ -5,21 +5,23 @@
 -- DROP TABLE BPDA.cx.fct_K7_Monthly;
 
 CREATE TABLE BPDA.cx.fct_K7_Monthly (
-	de_dt varchar(20) COLLATE Korean_Wansung_CI_AS NULL,
-	product_code varchar(255) COLLATE Korean_Wansung_CI_AS NULL,
+	de_dt varchar(20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	product_code varchar(255) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	id varchar(255) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	buy_ct int NULL,
-	YYYYMM varchar(20) COLLATE Korean_Wansung_CI_AS NULL,
+	YYYYMM varchar(20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	Pack_qty float NULL,
 	gender varchar(20) COLLATE Korean_Wansung_CI_AS NULL,
 	age varchar(20) COLLATE Korean_Wansung_CI_AS NULL,
 	pk_id int IDENTITY(1,1) NOT NULL,
-	CONSTRAINT PK_fct_K7_Monthly_pk_id PRIMARY KEY (pk_id)
+	CONSTRAINT PK__fct_K7_M__1543595E6D52BFA3 PRIMARY KEY (pk_id)
 );
  CREATE NONCLUSTERED INDEX ix_fct_K7_Monthly_id ON cx.fct_K7_Monthly (  id ASC  )  
 	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
 	 ON [PRIMARY ] ;
- 
+ CREATE NONCLUSTERED INDEX ix_fct_K7_Monthly_product_code ON cx.fct_K7_Monthly (  product_code ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
 
 -- Category : CIGATYPE
 -- CC, HnB
@@ -92,32 +94,45 @@ FROM cx.fct_K7_Monthly a
 WHERE b.ENGNAME != 'Cleaning Stick' AND b.cigatype != 'CSV' and 4 < len(a.id)		-- Default Condition
 group by a.YYYYMM, b.ENGNAME, b.CIGATYPE , b.FLAVORSEG, b.TARSEGMENTAT, a.id, a.buy_ct , b.SAL_QNT ;
 
--- alter table cx.fct_CC_purchases_monthly add New_FLAVORSEG varchar(50);
--- alter table cx.fct_CC_purchases_monthly add New_TARSEGMENTAT varchar(50);
--- CREATE INDEX ix_fct_CC_purchases_monthly_YYYYMM ON cx.fct_CC_purchases_monthly (  YYYYMM ASC  ) ;
--- CREATE INDEX ix_fct_CC_purchases_monthly_ENGNAME ON cx.fct_CC_purchases_monthly (  ENGNAME ASC  ) ;
--- CREATE INDEX ix_product_master_temp_ENGNAME ON cx.product_master_temp (  ENGNAME ASC  ) ;
 
 
--- -- CIGATYPE 구분자로 SUM
--- select distinct YYYYMM, ENGNAME, CIGATYPE, FLAVORSEG, TARSEGMENTAT,
--- 	sum(cast(quantity as int)) over (partition by YYYYMM, ENGNAME )as Total_Product_qty,
--- 	sum(cast(quantity as int)) over (partition by YYYYMM, CIGATYPE ) as Total_CIGA_qty,
--- 	sum(cast(quantity as int)) over (partition by YYYYMM, NEW_FLAVORSEG ) as Total_Flavor_qty,
--- 	sum(cast(quantity as int)) over (partition by YYYYMM, NEW_TARSEGMENTAT ) as Total_Taste_qty
--- --into cx.fct_CC_purchases_qty_monthly
--- 	from cx.fct_CC_purchases_monthly 
--- ;
+-- 월별 데이터 수량
+select yyyymm, count(*)
+from cx.fct_K7_Monthly
+group by yyyymm;
 
--- FLAVORSEG, TARSEGMENTAT 데이터가 없음 
-select * from cx.fct_CC_purchases_monthly
-order by YYYYMM, engname, id 
-;
-
-
-select *, cast(SAL_QNT as float) * buy_ct as total 
-FROM cx.fct_CC_purchases_monthly 
-where id ='17325089A0C527F9A71906969D614ACAE7711F21D0418FBC7F528EA8C451DA54'
-;
-
-
+--202107	701054
+--202108	697627
+--202109	649439
+--202110	706325
+--202111	713774
+--202112	693568
+--202201	657213
+--202202	589719
+--202203	709543
+--202204	751698
+--202205	819474
+--202206	809461
+--202207	837657
+--202208	804864
+--202209	790636
+--202210	880463
+--202211	859315
+--202212	845229
+--202301	835310
+--202302	808160
+--202303	958221
+--202304	943080
+--202305	1014279
+--202306	1007127
+--202307	1020240
+--202308	1018149
+--202309	1002879
+--202310	1010444
+--202311	960429
+--202312	941254
+--202401	946665
+--202402	894483
+--202403	1009427
+--202404	1058451
+--202405	1102170

@@ -24,6 +24,7 @@ order by a.YYYYMM;
     	JOIN cx.product_master_temp b ON a.product_code = b.PROD_ID
     WHERE b.ProductSubFamilyCode = 'HEETS'
     AND NOT EXISTS (
+    	-- TEREA 구매자는 제외
         SELECT 1
         FROM cx.fct_K7_Monthly t
         	JOIN cx.product_master_temp c ON t.product_code = c.PROD_ID

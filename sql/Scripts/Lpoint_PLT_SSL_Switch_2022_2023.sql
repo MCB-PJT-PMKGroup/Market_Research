@@ -1,22 +1,37 @@
--- Family 별 제품 구매량 집계
--- (2022 vs. 2023) Family name: 말보로 / Tar: LTS 제품 구매자가 다른 Family 제품 구매자 파악
+/* 작업 시작일 2024.07.18
+ * 
+ * 1. Dunhill Regular by
+- KS 6mg / 3mg / 1mg
+- SSL 4mg / 1mg / 0.1mg
 
--- 40,123 rows
--- 2022, 2023년에 (2022 vs. 2023) Family name: 말보로 / Tar: LTS 제품 >> In/Out 모수
+2. PLT SSL by
+- Red / One / Clearfinish
+*/
+--PLTSSRD
+--PLTSSON
+--PLTSSCF
+
+select * from cx.product_master_temp
+where ProductFamilyCode  = 'PLT'
+and THICKSEG ='SSL';
+--88019918	PARLIAMENT SS RED	팔리아멘트 수퍼슬림 레드 5MG
+--88019932	PARLIAMENT SS ONE	팔리아멘트 수퍼슬림 원 1MG
+--88019949	PARLIAMENT SS CLEARFINISH	팔리아멘트 수퍼슬림 클리어피니쉬 1
+
 SELECT 
     a.product_code,
 	a.id,
 	b.ProductFamilyCode , b.New_TARSEGMENTAT,
 	sum(case when left(a.YYYYMM, 4) = '2022' then a.buy_ct * a.pack_qty else 0 end) as [Out],
 	sum(case when left(a.YYYYMM, 4) = '2023' then a.buy_ct * a.pack_qty else 0 end) as [In]
---into cx.agg_MLB_LTS_Switch4
+--into cx.agg_PLT_SSL_Switch
 FROM 
     cx.fct_K7_Monthly a
     	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)
 where 1=1
    	and left(a.YYYYMM, 4) in ('2022', '2023')
-    -- 말보로 LTS 제품군
-  	AND b.ProductFamilyCode = 'MLB' and b.New_TARSEGMENTAT = 'LTS'
+   	-- PLT SSL 대상 
+	AND b.ProductFamilyCode ='PLT' and b.Productcode in ('PLTSSRD', 'PLTSSON', 'PLTSSCF')
     --2022, 2023년 모두 구매한 사람은 제외
     and a.id not in (	
 	    SELECT 
@@ -25,9 +40,10 @@ where 1=1
         	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
 		where 1=1
 		   	and left(x.YYYYMM, 4) in ('2022', '2023')
-			AND y.ProductFamilyCode = 'MLB' and y.New_TARSEGMENTAT = 'LTS'
+		   	-- 팔리아멘트
+			AND y.ProductFamilyCode ='PLT' and y.Productcode in ('PLTSSRD', 'PLTSSON', 'PLTSSCF')
 		GROUP BY 
-		    y.cigatype, y.ProductFamilyCode, y.New_TARSEGMENTAT, x.id
+		    y.cigatype, y.ProductFamilyCode, y.Productcode, x.id
 		HAVING 
 		    -- 2023년, 2022년에 모두 구매함	
 		    (SUM(CASE WHEN left(x.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) > 0
@@ -45,7 +61,7 @@ HAVING
 	    FROM cx.fct_K7_Monthly x
 	    	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
 	    where a.id = x.id and left(x.YYYYMM, 4) = '2023'
-		and x.product_code not in ( a.product_code )
+		and x.product_code != a.product_code 
     	)
 	)
 	OR
@@ -58,20 +74,17 @@ HAVING
 	    FROM cx.fct_K7_Monthly x
 	    	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
 	    where a.id = x.id and left(x.YYYYMM, 4) = '2022'
-	    and x.product_code not in (a.product_code )
+	    and x.product_code != a.product_code 
     	)
     )
 ;
 
 
 
-select *
- FROM cx.fct_K7_Monthly x
-	    	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
-where x.product_code  ='88019963'
-and left(x.YYYYMM ,4) ='2022';
-
-
+SELECT distinct product_code , b.engname
+FROM BPDA.cx.agg_PLT_SSL_Switch a
+	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id);
+	   
 -- cigatype, Taste, Tar CC Switching 작업
 select  
 	b.cigatype,	
@@ -89,13 +102,13 @@ select
 		when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then a.buy_ct * a.pack_qty 
 	end) as In_quantity
 from 
-	cx.agg_MLB_LTS_Switch t
-		join cx.fct_K7_Monthly a on a.id = t.id AND 4 < LEN(a.id) and left(a.YYYYMM, 4) in ('2022', '2023') and a.product_code not in( t.product_code)
+	cx.agg_PLT_SSL_Switch_2022_2023 t
+		join cx.fct_K7_Monthly a on a.id = t.id AND 4 < LEN(a.id) and left(a.YYYYMM, 4) in ('2022', '2023') 
+			and a.product_code not in( t.product_code)		-- 다른 제품만 추출
 		join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' AND b.cigatype != 'CSV' 
-group by rollup(b.cigatype, b.New_FLAVORSEG, b.New_TARSEGMENTAT)
+WHERE t.product_code = '88019949'
+group by grouping sets ((b.cigatype, b.New_FLAVORSEG, b.New_TARSEGMENTAT),  (b.cigatype, b.New_FLAVORSEG),  (b.cigatype), ())
 ;
-
-
 
 -- SKU 별 Switching In/Out
 select
@@ -111,21 +124,22 @@ select
 	'',
 	sum(case when left(a.YYYYMM, 4) = '2023' and t.[Out] > 0 then a.buy_ct * a.Pack_qty end ) as Out_Quantity,
 	sum(case when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then a.buy_ct * a.Pack_qty end ) as In_Quantity
-from cx.agg_MLB_LTS_Switch  t
-	join cx.fct_K7_Monthly a on t.id = a.id and 4 < len(a.id) and left(a.YYYYMM, 4) in ('2022', '2023')  and a.product_code not in( t.product_code)
-	join cx.product_master_temp b on a.Product_code = b.prod_id and b.CIGADEVICE ='CIGARETTES' and b.CIGATYPE != 'CSV'
-where (b.ProductFamilyCode != 'MLB' or b.New_TARSEGMENTAT != 'LTS')
-group by grouping sets (( b.cigatype, b.Engname, b.New_Flavorseg, b.New_Tarsegmentat, b.THICKSEG), (b.cigatype), ())
+from cx.agg_PLT_SSL_Switch_2022_2023  t
+	join cx.fct_K7_Monthly a on t.id = a.id and 4 < len(a.id) and left(a.YYYYMM, 4) in ('2022', '2023') and a.product_code not in(t.product_code) 
+	join cx.product_master_temp b on a.Product_code = b.prod_id and b.CIGADEVICE ='CIGARETTES' and b.CIGATYPE != 'CSV' 
+WHERE t.product_code = '88019949'
+group by grouping sets ((b.cigatype, b.Engname, b.New_Flavorseg, b.New_Tarsegmentat, b.THICKSEG), (b.cigatype), ())
 ;
+	   
 
 
-
---  2022년 ~ 2023년동안 지속적으로 동일한 제품을 이용한 고객 Continuous Purchaser Count,	Pack Count
-WITH temp AS(
+-- 2022년 ~ 2023년동안 지속적으로 동일한 제품을 이용한 고객, Continuous Purchaser Count,	Pack Count
+-- 25,404
+with temp as (
 	SELECT 
 		b.cigatype,
 	    b.ProductFamilyCode,
-	    b.New_TARSEGMENTAT,
+	    b.engname,
 		a.id,
 		sum(a.buy_ct * a.pack_qty) as sale_pack_cnt,
 	    SUM(CASE WHEN left(a.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) AS [Out],
@@ -135,20 +149,20 @@ WITH temp AS(
 	    	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)
 	where 1=1
 	   	and left(a.YYYYMM, 4) in ('2022', '2023')
-	    AND b.ProductFamilyCode = 'MLB' and b.New_TARSEGMENTAT = 'LTS'
+	    AND b.ProductFamilyCode ='PLT' and b.Productcode in ('PLTSSRD', 'PLTSSON', 'PLTSSCF')
 	GROUP BY 
-	    b.cigatype, b.ProductFamilyCode, b.New_TARSEGMENTAT, a.id
-	HAVING 
-	    -- "in/Out" 상태: 2023년에는 구매하고 2022년에도 구매함	
-	    (SUM(CASE WHEN left(a.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) > 0
-	    AND SUM(CASE WHEN left(a.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) > 0)
+	    b.cigatype, b.ProductFamilyCode, b.engname,  a.id
+	HAVING    
+	 	-- 2022년에 구매하고 2023년에도 구매한 사람들
+	    (SUM(CASE WHEN  left(a.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) > 0
+	    AND SUM(CASE WHEN left(a.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) > 0)
 )
 select 
-	ProductFamilyCode, New_TARSEGMENTAT,
+	engname, 
 	count(distinct id) as Purchaser_cnt,
 	sum(sale_pack_cnt) as pack_cnt
 from temp
-group by ProductFamilyCode, New_TARSEGMENTAT
+group by engname
 ;
 
 
@@ -163,28 +177,23 @@ FROM
     	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)
 where 1=1
    	and left(a.YYYYMM, 4) in ('2022', '2023')
-    AND b.ProductFamilyCode = 'MLB' and b.New_TARSEGMENTAT = 'LTS'
+    AND b.ProductFamilyCode ='PLT' and b.Productcode in ('PLTSSRD', 'PLTSSON', 'PLTSSCF')
 GROUP BY 
       b.engname, left(a.YYYYMM, 4)
 ;
-	   
+	    
 -- In/Out별 구매자수, 총 구매 팩수 
 select  
-	t.ProductFamilyCode, t.New_TARSEGMENTAT,
-	case 
-		when t.[Out] > 0 then '2022'
-		when t.[In] > 0 then '2023'		
-	end year,
+	b.engname,
+	left(a.yyyymm,4) year,
 	count(DISTINCT case when t.[Out] > 0 then t.id end ) as Out_Purchaser_Cnt,
 	count(DISTINCT case when t.[In] > 0 then t.id end ) as In_Purchaser_Cnt,
-	sum(case when  t.[Out] > 0 then t.[Out] end ) as Out_Quantity,
-	sum(case when t.[In] > 0 then t.[In] end ) as In_Quantity
+	sum(case when t.[Out] > 0 then a.buy_ct * a.Pack_qty end ) as Out_Quantity,
+	sum(case when t.[In] > 0 then a.buy_ct * a.Pack_qty end ) as In_Quantity
 from 
-	cx.agg_MLB_LTS_Switch t
-group by 	
-	t.ProductFamilyCode, t.New_TARSEGMENTAT, 
-	case 
-		when t.[Out] > 0 then '2022'
-		when t.[In] > 0 then '2023'		
-	end
+	cx.agg_PLT_SSL_Switch_2022_2023 t
+		join cx.fct_K7_Monthly a on a.id = t.id AND 4 < LEN(a.id) and left(a.YYYYMM, 4) in ('2022', '2023') and a.product_code = t.product_code
+		join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' AND b.cigatype != 'CSV'
+group by b.engname, left(a.yyyymm,4)
 ;
+

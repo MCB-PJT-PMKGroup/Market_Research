@@ -67,7 +67,7 @@ HAVING
 --88017693	PARLIAMENT HYBRID
 --88017624	PARLIAMENT HYBRID 5
 SELECT distinct product_code , b.engname
-FROM BPDA.cx.agg_PLT_CC_Switch3 a
+FROM BPDA.cx.agg_PLT_CC_Switch a
 	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id);
 	   
 -- cigatype, Taste, Tar CC Switching 작업
@@ -150,7 +150,22 @@ from temp
 group by engname
 ;
 
- 
+
+-- 구매자, 팩수 총 카운트
+select 
+	b.engname,
+	left(a.yyyymm,4) year,
+	COUNT(distinct id ) Purchaser_Cnt,
+	sum(a.buy_ct * a.pack_qty) as Total_Pack_Cnt
+FROM 
+    cx.fct_K7_Monthly a
+    	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)
+where 1=1
+   	and left(a.YYYYMM, 4) in ('2022', '2023')
+    AND b.ProductFamilyCode ='PLT' and b.Productcode in ('PLTKSB', 'PLTMLD', 'PLTONE', 'PLTHYB1','PLTHYB5')
+GROUP BY 
+      b.engname, left(a.YYYYMM, 4)
+;
 	     
 	    
 -- In/Out별 구매자수, 총 구매 팩수 

@@ -146,6 +146,21 @@ from temp
 group by engname
 ;
 
+-- 구매자 총 카운트
+select 
+	b.engname,
+	left(a.yyyymm,4) year,
+	COUNT(distinct id ) Purchaser_Cnt,
+	sum(a.buy_ct * a.pack_qty) as Total_Pack_Cnt
+FROM 
+    cx.fct_K7_Monthly a
+    	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)
+where 1=1
+   	and left(a.YYYYMM, 4) in ('2022', '2023')
+    AND b.ProductFamilyCode = 'MLB' and b.Productcode in ('MLBGLD', 'MMEDFT')
+GROUP BY 
+      b.engname, left(a.YYYYMM, 4)
+;
 
 
 -- In/Out별 구매자수, 총 구매 팩수 
