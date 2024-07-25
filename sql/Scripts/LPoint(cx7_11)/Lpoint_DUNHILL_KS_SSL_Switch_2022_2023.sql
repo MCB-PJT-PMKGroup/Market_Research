@@ -6,11 +6,12 @@
 */
 -- 대상 참고
 select * from cx.product_master_temp
-where ProductSubFamilyCode = 'DUNHILLKS' and New_FLAVORSEG='Regular' and TARINFO in ('1', '3', '6') and prod_id != '88011639';
+where ProductFamilyCode = 'DUNHILL' and THICKSEG ='STD' and New_FLAVORSEG='Regular'; -- and TARINFO in ('1', '3', '6') and prod_id != '88011639';
 
+-- SSL 5종
 select * 
 from cx.product_master_temp
-where ProductFamilyCode = 'DUNHILL' and New_FLAVORSEG='Regular' and thickseg ='SSL'  and TARINFO in ('1', '3', '0.1') ;
+where ProductFamilyCode = 'DUNHILL' and New_FLAVORSEG='Regular' and thickseg in ('SSL', 'SLI', 'MSL') ; -- and TARINFO in ('1', '3', '0.1') ;
 
 -- DUNHILL KS 대상 : 38,386 rows
 SELECT 

@@ -25,7 +25,7 @@ CREATE TABLE BPDA.cu.Fct_BGFR_PMI_Monthly (
 	 ON [PRIMARY ] ;
 
 --insert into cu.Fct_BGFR_PMI_Monthly 
---	(YYYYMM
+--	(YM_CD
 --	,SIDO_CD
 --	,CUST_ID
 --	,GENDER_CD

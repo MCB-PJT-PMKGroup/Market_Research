@@ -23,6 +23,12 @@ CREATE TABLE BPDA.cx.fct_K7_Monthly (
 	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
 	 ON [PRIMARY ] ;
 
+-- PK, 인덱스 만들기 
+ALTER TABLE BPDA.cx.fct_K7_Monthly ALTER COLUMN id varchar(255) COLLATE Korean_Wansung_CI_AS NOT NULL;
+alter table cx.fct_K7_Monthly add pk_id int identity(1,1) primary key;
+create index ix_fct_K7_Monthly_id on cx.fct_K7_Monthly  (id);
+create index ix_fct_K7_Monthly_product_code on cx.fct_K7_Monthly  (product_code) include(id, YYYYMM);
+
 -- Category : CIGATYPE
 -- CC, HnB
 
@@ -93,6 +99,37 @@ FROM cx.fct_K7_Monthly a
     JOIN cx.product_master_temp b ON a.product_code = b.PROD_ID
 WHERE b.ENGNAME != 'Cleaning Stick' AND b.cigatype != 'CSV' and 4 < len(a.id)		-- Default Condition
 group by a.YYYYMM, b.ENGNAME, b.CIGATYPE , b.FLAVORSEG, b.TARSEGMENTAT, a.id, a.buy_ct , b.SAL_QNT ;
+
+
+--alter table cx.product_master_temp add FLAVORSEG_type6 varchar(50) COLLATE Korean_Wansung_CI_AS NULL;
+;
+update a
+set a.FLAVORSEG_type6 = 
+	CASE 
+	    WHEN b.FLAVORSEG like 'FS1:%' THEN 'Regular'
+	    WHEN b.FLAVORSEG like 'FS2:%' THEN 'Regular to Fresh'
+	    WHEN b.FLAVORSEG like 'FS3:%' THEN 'Regular to Fresh'
+	    WHEN b.FLAVORSEG like 'FS4:%' THEN 'Regular to New Taste'
+	    WHEN b.FLAVORSEG like 'FS5:%' THEN 'Fresh to Fresh'
+	    WHEN b.FLAVORSEG like 'FS7:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS8:%' THEN 'Fresh to New Taste'
+	    WHEN b.FLAVORSEG like 'FS9:%' THEN 'Fresh to New Taste'
+	    WHEN b.FLAVORSEG like 'FS10:%' THEN 'Regular to New Taste'
+	    WHEN b.FLAVORSEG like 'FS11:%' THEN 'Fresh to Fresh'
+	    WHEN b.FLAVORSEG like 'FS12:%' THEN 'Regular to Fresh'
+	    WHEN b.FLAVORSEG like 'FS13:%' THEN 'Regular Fresh'
+	    WHEN b.FLAVORSEG like 'FS14:%' THEN 'New Taste'
+	    when b.FLAVORSEG like 'Aftercut (New%' then 'New Taste'
+	    when b.FLAVORSEG like 'Regular Fresh' then 'Regular Fresh' 
+	    when b.FLAVORSEG like 'Regular to Fresh' then 'Regular to Fresh'
+		when b.FLAVORSEG like 'Regular to New Taste' then 'Regular to New Taste'
+		when b.FLAVORSEG like 'Fresh to New Taste' then 'Fresh to New Taste'
+    ELSE b.FLAVORSEG
+    end 
+	from cx.product_master_temp a
+		join cx.product_master_temp b on a.prod_id = b.prod_id;
+
+
 
 
 

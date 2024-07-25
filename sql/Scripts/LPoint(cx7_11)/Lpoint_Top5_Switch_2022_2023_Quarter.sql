@@ -36,12 +36,13 @@ SELECT
 	b.New_TARSEGMENTAT,
 	sum(case when left(a.YYYYMM, 4) = '2022' then a.buy_ct * a.pack_qty else 0 end) as [Out],
 	sum(case when left(a.YYYYMM, 4) = '2023' then a.buy_ct * a.pack_qty else 0 end) as [In]
-into cx.agg_top5_Switch_2022_2023_temp
+--into cx.agg_top5_Switch_2022_2023_temp
 FROM 
     cx.fct_K7_Monthly a
-       	-- Top 5 제품군 대상
-		-- in ('ESSE', 'DUNHILL', 'MEVIUS', 'MLB' , 'RAISON') 
-    	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id) and b.ProductFamilyCode = 'ESSE'
+     	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id) 
+     	-- Top 5 제품군 대상
+		-- in ('ESSE', 'DUNHILL', 'MEVIUS', 'MLB' , 'RAISON')
+    	and b.ProductFamilyCode = 'ESSE'
 where 1=1
    	and left(a.YYYYMM, 4) in ('2022', '2023')
     --2022, 2023년 모두 구매한 사람은 제외
@@ -49,7 +50,10 @@ where 1=1
 	    SELECT 
 			x.id
         FROM cx.fct_K7_Monthly x
-        	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id) and y.ProductFamilyCode = 'ESSE' 
+        	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id) 
+	       	-- Top 5 제품군 대상
+			-- in ('ESSE', 'DUNHILL', 'MEVIUS', 'MLB' , 'RAISON')
+        	and y.ProductFamilyCode = 'ESSE' 
 		where 1=1
 		   	and left(x.YYYYMM, 4) in ('2022', '2023')
 		GROUP BY 
