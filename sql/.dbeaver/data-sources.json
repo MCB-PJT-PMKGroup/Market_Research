@@ -25,7 +25,8 @@
 			},
 			"custom-properties": {
 				"resultset.confirm.beforeSave": "false",
-				"resultset.datetime.editor": "false"
+				"resultset.datetime.editor": "false",
+				"resultset.maxrows": "500"
 			}
 		}
 	},

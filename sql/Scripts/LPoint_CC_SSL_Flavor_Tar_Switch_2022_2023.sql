@@ -26,71 +26,71 @@ group by  case when THICKSEG = 'SLI' then 'SSL'
 
 -- 58,806 rows
 --insert into cx.agg_CC_KS_SSL_Switch_2022_2023
-SELECT  
-    a.product_code, b.ProductFamilyCode, 
-	a.id,
-	b.THICKSEG , 
-	b.FLAVORSEG_type6,
-	sum(case when left(a.YYYYMM, 4) = '2022' then a.buy_ct * a.pack_qty else 0 end) as [Out],
-	sum(case when left(a.YYYYMM, 4) = '2023' then a.buy_ct * a.pack_qty else 0 end) as [In]
-FROM 
-    cx.fct_K7_Monthly a
-     	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id) 
-    	and b.THICKSEG in ('SSL', 'SLI', 'MSL') and b.FLAVORSEG_type6 = 'Regular'
-where 1=1
-   	and left(a.YYYYMM, 4) in ('2022', '2023')
-    --2022, 2023년 모두 구매한 사람은 제외
-    and a.id not in (
-		SELECT 
-			x.id
-		FROM cx.fct_K7_Monthly x
-			join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype = 'CC' AND 4 < LEN(x.id) 
-			and y.THICKSEG in ('SSL', 'SLI', 'MSL') and y.FLAVORSEG_type6 = 'Regular'
-		where 1=1
-		   	and left(x.YYYYMM, 4) in ('2022', '2023')
-		GROUP BY          
-		    case when y.THICKSEG = 'SLI' then 'SSL'
-		    	when y.THICKSEG = 'MSL' then 'SSL'
-		    	else y.THICKSEG
-			end, 
-			y.FLAVORSEG_type6, x.id
-		HAVING 
-		    -- 2023년, 2022년에 모두 구매함	
-		    (SUM(CASE WHEN left(x.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) > 0
-		    AND SUM(CASE WHEN left(x.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) > 0)
-	)
-GROUP BY 
-    a.product_code, b.ProductFamilyCode, 
-    a.id,
-    b.THICKSEG, 
-    b.FLAVORSEG_type6
-HAVING
-    -- Out : 2022년도에는 구매했지만 2023년도에는 해당 제품을 구매하지 않아 Out
-	(SUM(CASE WHEN  left(a.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) > 0
-	and SUM(CASE WHEN  left(a.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) = 0
-    AND EXISTS (
-		-- 2023년에는 다른 제품을 구매한 사람
-	    SELECT 1
-	    FROM cx.fct_K7_Monthly x
-	    	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
-	    where a.id = x.id and left(x.YYYYMM, 4) = '2023'
-		and x.product_code != a.product_code 
-    	)
-	)
-	OR
-    -- In : 2022년도에는 구매하지 않고 2023년도에는 해당 제품을 구매하여 IN
-    (SUM(CASE WHEN left(a.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) > 0
-    AND SUM(CASE WHEN left(a.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) = 0 
-    AND EXISTS (
-    	-- 2022년에 다른 제품을 구매한 사람
-	    SELECT 1
-	    FROM cx.fct_K7_Monthly x
-	    	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
-	    where a.id = x.id and left(x.YYYYMM, 4) = '2022'
-	    and x.product_code != a.product_code 
-    	)
-    )
-;
+--SELECT  
+--    a.product_code, b.ProductFamilyCode, 
+--	a.id,
+--	b.THICKSEG , 
+--	b.FLAVORSEG_type6,
+--	sum(case when left(a.YYYYMM, 4) = '2022' then a.buy_ct * a.pack_qty else 0 end) as [Out],
+--	sum(case when left(a.YYYYMM, 4) = '2023' then a.buy_ct * a.pack_qty else 0 end) as [In]
+--FROM 
+--    cx.fct_K7_Monthly a
+--     	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id) 
+--    	and b.THICKSEG in ('SSL', 'SLI', 'MSL') and b.FLAVORSEG_type6 = 'Regular'
+--where 1=1
+--   	and left(a.YYYYMM, 4) in ('2022', '2023')
+--    2022, 2023년 모두 구매한 사람은 제외
+--    and a.id not in (
+--		SELECT 
+--			x.id
+--		FROM cx.fct_K7_Monthly x
+--			join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype = 'CC' AND 4 < LEN(x.id) 
+--			and y.THICKSEG in ('SSL', 'SLI', 'MSL') and y.FLAVORSEG_type6 = 'Regular'
+--		where 1=1
+--		   	and left(x.YYYYMM, 4) in ('2022', '2023')
+--		GROUP BY          
+--		    case when y.THICKSEG = 'SLI' then 'SSL'
+--		    	when y.THICKSEG = 'MSL' then 'SSL'
+--		    	else y.THICKSEG
+--			end, 
+--			y.FLAVORSEG_type6, x.id
+--		HAVING 
+--		     2023년, 2022년에 모두 구매함	
+--		    (SUM(CASE WHEN left(x.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) > 0
+--		    AND SUM(CASE WHEN left(x.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) > 0)
+--	)
+--GROUP BY 
+--    a.product_code, b.ProductFamilyCode, 
+--    a.id,
+--    b.THICKSEG, 
+--    b.FLAVORSEG_type6
+--HAVING
+--     Out : 2022년도에는 구매했지만 2023년도에는 해당 제품을 구매하지 않아 Out
+--	(SUM(CASE WHEN  left(a.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) > 0
+--	and SUM(CASE WHEN  left(a.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) = 0
+--    AND EXISTS (
+--		 2023년에는 다른 제품을 구매한 사람
+--	    SELECT 1
+--	    FROM cx.fct_K7_Monthly x
+--	    	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
+--	    where a.id = x.id and left(x.YYYYMM, 4) = '2023'
+--		and x.product_code != a.product_code 
+--    	)
+--	)
+--	OR
+--     In : 2022년도에는 구매하지 않고 2023년도에는 해당 제품을 구매하여 IN
+--    (SUM(CASE WHEN left(a.YYYYMM, 4) = '2023' THEN 1 ELSE 0 END) > 0
+--    AND SUM(CASE WHEN left(a.YYYYMM, 4) = '2022' THEN 1 ELSE 0 END) = 0 
+--    AND EXISTS (
+--    	 2022년에 다른 제품을 구매한 사람
+--	    SELECT 1
+--	    FROM cx.fct_K7_Monthly x
+--	    	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
+--	    where a.id = x.id and left(x.YYYYMM, 4) = '2022'
+--	    and x.product_code != a.product_code 
+--    	)
+--    )
+--;
 
 -- SSL Regular 				59,505 rows
 -- SSL New taste 			4,508 
@@ -234,8 +234,8 @@ select
 	'',
 	'',
 	'',
-	sum(case when left(a.YYYYMM, 4) = '2023' and t.[Out] > 0 then a.buy_ct * a.Pack_qty end ) as Out_Quantity,
-	sum(case when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then a.buy_ct * a.Pack_qty end ) as In_Quantity
+	sum(case when left(a.YYYYMM, 4) = '2023' and t.[Out] > 0 then a.buy_ct * a.Pack_qty else 0 end ) as Out_Quantity,
+	sum(case when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then a.buy_ct * a.Pack_qty else 0 end ) as In_Quantity
 from cx.agg_CC_SSL_Switch_2022_2023  t
 	join cx.fct_K7_Monthly a on t.id = a.id and 4 < len(a.id) and left(a.YYYYMM, 4) in ('2022', '2023')
 	join cx.product_master_temp b on a.Product_code = b.prod_id and b.CIGADEVICE ='CIGARETTES' and b.CIGATYPE != 'CSV'  

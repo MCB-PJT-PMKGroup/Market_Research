@@ -102,7 +102,7 @@ select * from cx.fct_K7_Monthly a
 	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id) 
 where a.id ='E7CCC6D905BE1F82DF41D89A608FAA332CA2C0DA871857DF44D8B6FD4CC0E289';
 
-
+create index ix_fct_K7_Monthly_product_code on cx.fct_K7_Monthly  (product_code) include(id, YYYYMM);
 
 -- 구매자, 구매팩수 총 카운트
 select 
