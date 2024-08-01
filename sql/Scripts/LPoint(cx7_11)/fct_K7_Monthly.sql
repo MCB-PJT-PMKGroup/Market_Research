@@ -5,7 +5,7 @@
 -- DROP TABLE BPDA.cx.fct_K7_Monthly;
 
 CREATE TABLE BPDA.cx.fct_K7_Monthly (
-	de_dt varchar(20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	de_dt date NOT NULL,
 	product_code varchar(255) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	id varchar(255) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	buy_ct int NULL,
@@ -13,21 +13,26 @@ CREATE TABLE BPDA.cx.fct_K7_Monthly (
 	Pack_qty float NULL,
 	gender varchar(20) COLLATE Korean_Wansung_CI_AS NULL,
 	age varchar(20) COLLATE Korean_Wansung_CI_AS NULL,
-	pk_id int IDENTITY(1,1) NOT NULL,
-	CONSTRAINT PK__fct_K7_M__1543595E6D52BFA3 PRIMARY KEY (pk_id)
+	rct_seq varchar(100) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	CONSTRAINT pk_fct_k7_Monthly_id_product_code PRIMARY KEY (id,product_code,YYYYMM,rct_seq)
 );
- CREATE NONCLUSTERED INDEX ix_fct_K7_Monthly_id ON cx.fct_K7_Monthly (  id ASC  )  
-	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
-	 ON [PRIMARY ] ;
- CREATE NONCLUSTERED INDEX ix_fct_K7_Monthly_product_code ON cx.fct_K7_Monthly (  product_code ASC  )  
-	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
-	 ON [PRIMARY ] ;
 
--- PK, 인덱스 만들기 
-ALTER TABLE BPDA.cx.fct_K7_Monthly ALTER COLUMN id varchar(255) COLLATE Korean_Wansung_CI_AS NOT NULL;
-alter table cx.fct_K7_Monthly add pk_id int identity(1,1) primary key;
-create index ix_fct_K7_Monthly_id on cx.fct_K7_Monthly  (id);
-create index ix_fct_K7_Monthly_product_code on cx.fct_K7_Monthly  (product_code) include(id, YYYYMM);
+
+-- 1,089,136 rows
+insert into cx.fct_K7_Monthly 
+select 
+	de_dt
+	,product_code
+	,id
+	,buy_ct
+	,left(de_dt, 6) YYYYMM
+	,buy_ct * cast(SAL_QNT as float) Pack_qty
+	,gender
+	,age
+	,rct_seq
+from cx.K7_202406 a
+	left join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and 4 < len(a.id) and b.CIGATYPE != 'CSV'
+;
 
 -- Category : CIGATYPE
 -- CC, HnB
