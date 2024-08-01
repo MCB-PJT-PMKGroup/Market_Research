@@ -2,4 +2,4 @@
 
 
 # 작업환경
-Python VENV 환경사용
+Python : 3.12.4
