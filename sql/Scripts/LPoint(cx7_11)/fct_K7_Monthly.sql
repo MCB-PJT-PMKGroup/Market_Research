@@ -18,6 +18,12 @@ CREATE TABLE BPDA.cx.fct_K7_Monthly (
 );
  
 
+update a
+set a.Pack_qty = a.buy_ct * cast(b.sal_qnt as decimal)
+from cx.fct_K7_Monthly a
+	left join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.CIGATYPE != 'CSV'
+;
+
 -- 1,089,136 rows
 insert into cx.fct_K7_Monthly 
 select 
@@ -35,6 +41,7 @@ from cx.K7_202406 a
 ;
 
 
+
 -- 담배제품 매핑안된 구매건수 0으로 pack_qty 업데이트
 --Updated Rows	1604137
 update cx.fct_K7_Monthly 
@@ -42,7 +49,10 @@ set Pack_qty = 0
 where Pack_qty is null;
 
 
-
+-- ID가 '미상'인 구매자 제거 1662 Rows
+delete 
+from cx.fct_K7_Monthly 
+WHERE len(id) < 6;
 
 -- 월별 데이터 수량
 select yyyymm, count(*)

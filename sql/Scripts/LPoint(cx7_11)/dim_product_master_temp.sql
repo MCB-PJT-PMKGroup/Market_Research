@@ -137,3 +137,62 @@ set a.FLAVORSEG_type6 =
     end 
 	from cx.product_master_temp a
 		join cx.product_master_temp b on a.prod_id = b.prod_id;
+
+
+
+-- 새로 추가되는 제품 추가하기 
+insert into cx.product_master
+select a.PROD_ID,a.ENGNAME,a.ProductDescription,a.ProductFamilyCode,a.CIGADEVICE,a.CIGATYPE,a.FLAVORSEG,a.LENGTHSEG,a.MENTHOLINDI,a.DELISTYN,a.THICKSEG,a.TARSEGMENTAT,a.CAPSULEYN,a.TARINFO,a.Company,a.SAL_QNT,a.ProductSubFamilyCode,a.Productcode,a.MKTD_BRDCODE,a.SMARTSRCCode,a.[check],
+	CASE 
+	    WHEN b.FLAVORSEG like 'FS1:%' THEN 'Regular'
+	    WHEN b.FLAVORSEG like 'FS2:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS3:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS4:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS5:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS7:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS8:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS9:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS10:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS11:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS12:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS13:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS14:%' THEN 'New Taste'
+	    when b.FLAVORSEG like 'Aftercut (New%' then 'New Taste'
+	    when b.FLAVORSEG like 'Regular Fresh' then 'Fresh' 
+	    when b.FLAVORSEG like 'Regular to Fresh' then 'Fresh'
+		when b.FLAVORSEG like 'Regular to New Taste' then 'New Taste'
+		when b.FLAVORSEG like 'Fresh to New Taste' then 'New Taste'
+    	ELSE b.FLAVORSEG 
+    end,
+	CASE 
+    	when b.TARSEGMENTAT like 'TS1:%' then 'FF'
+    	when b.TARSEGMENTAT like 'TS2:%' then 'LTS'
+    	when b.TARSEGMENTAT like 'TS3:%' then 'ULT'
+    	when b.TARSEGMENTAT like 'TS4:%' then '1MG'
+    	when b.TARSEGMENTAT like 'TS5:%' then 'Below 1MG'
+    	else b.TARSEGMENTAT 
+    END,
+	CASE 
+	    WHEN b.FLAVORSEG like 'FS1:%' THEN 'Regular'
+	    WHEN b.FLAVORSEG like 'FS2:%' THEN 'Regular to Fresh'
+	    WHEN b.FLAVORSEG like 'FS3:%' THEN 'Regular to Fresh'
+	    WHEN b.FLAVORSEG like 'FS4:%' THEN 'Regular to New Taste'
+	    WHEN b.FLAVORSEG like 'FS5:%' THEN 'Fresh to Fresh'
+	    WHEN b.FLAVORSEG like 'FS7:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS8:%' THEN 'Fresh to New Taste'
+	    WHEN b.FLAVORSEG like 'FS9:%' THEN 'Fresh to New Taste'
+	    WHEN b.FLAVORSEG like 'FS10:%' THEN 'Regular to New Taste'
+	    WHEN b.FLAVORSEG like 'FS11:%' THEN 'Fresh to Fresh'
+	    WHEN b.FLAVORSEG like 'FS12:%' 				THEN 'Regular to Fresh'
+	    WHEN b.FLAVORSEG like 'FS13:%' 				THEN 'Regular Fresh'
+	    WHEN b.FLAVORSEG like 'FS14:%' 				THEN 'New Taste'
+	    when b.FLAVORSEG like 'Aftercut (New%' 		then 'New Taste'
+	    when b.FLAVORSEG like 'Regular Fresh' 		then 'Regular Fresh' 
+	    when b.FLAVORSEG like 'Regular to Fresh' 	then 'Regular to Fresh'
+		when b.FLAVORSEG like 'Regular to New Taste' then 'Regular to New Taste'
+		when b.FLAVORSEG like 'Fresh to New Taste'	then 'Fresh to New Taste'
+    	ELSE b.FLAVORSEG 
+    end as FLAVORSEG_type6
+from cx.product_master_tmp2 a
+	left join cx.product_master b on a.PROD_ID  = b.PROD_ID 
+where b.PROD_ID is null;

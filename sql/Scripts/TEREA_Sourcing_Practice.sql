@@ -12,7 +12,7 @@ select YYYYMM,
 from cx.fct_K7_Monthly 
 where YYYYMM='202403';
 
-select * from cx.product_master_temp 
+select * from cx.product_master 
 where ProductSubFamilyCode='TEREA';
 
 -- Arber Pearl Sourcing 기본 가공 - Base
@@ -26,13 +26,13 @@ with temp as (
 		 max(age) age
 	FROM
 		 cx.fct_K7_Monthly a
-		    join cx.product_master_temp b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  cigatype != 'CSV' AND 4 < LEN(a.id)
+		    join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  cigatype != 'CSV' AND 4 < LEN(a.id)
 	where 1=1
 	and  exists (
 		-- 직전 3개월 동안 구매이력이 최소 1건 있는 구매자만 대상
 		select 1 
 		from cx.fct_K7_Monthly x
-	    	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
+	    	join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
 		where x.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, a.YYYYMM+'01'), 112)
 						   AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, a.YYYYMM+'01'), 112) 
 		and a.id = x.id
@@ -51,16 +51,16 @@ select distinct
 	a.id, 
 	a.gender, 
 	a.age
---into cx.agg_TEREA_Sourcing
+into cx.agg_TEREA_Sourcing_tmp
 from temp a
-	join cx.product_master_temp b on CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)  and a.SKU = b.ProductSubFamilyCode 
+	join cx.product_master b on CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)  and a.SKU = b.ProductSubFamilyCode 
 -- 저번 달 구매자는 제외
 where not exists (SELECT 1 FROM cx.fct_K7_Monthly WHERE id = a.id and YYYYMM <= CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, a.YYYYMM+'01'), 112) and product_code =  b.prod_id )
 and id in ( 
 	select id 
 	FROM
 		 cx.fct_K7_Monthly x
-		    join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id) 
+		    join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id) 
     and x.YYYYMM = a.YYYYMM
     and y.engname = b.ENGNAME 
 	)
@@ -81,7 +81,7 @@ where id ='00851229FF4A0026F2682594CEDABB0AE1B73FF85E6CDED060ED4FB00B37ECC9';
 -- 해당 월에 제품을 구매한 이력
 select YYYYMM, id, count(*) purchase_cnt
 FROM cx.fct_K7_Monthly a
-    join cx.product_master_temp b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  cigatype != 'CSV' AND 4 < LEN(a.id) 
+    join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  cigatype != 'CSV' AND 4 < LEN(a.id) 
     	and b.ProductSubFamilyCode ='TEREA'	-- Target SKU
 		and YYYYMM = '202211'				-- Target Date
 where not exists (SELECT 1 FROM cx.fct_K7_Monthly WHERE id = a.id and YYYYMM <= CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, a.YYYYMM+'01'), 112) and product_code = b.PROD_ID )
@@ -118,7 +118,7 @@ group by YYYYMM;
 --직전 3개월 구매 상세 이력 
 select engname, productdescription, prod_id, de_dt, id, gender, age, YYYYMM, pack_qty
 from cx.fct_K7_Monthly x
-	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
+	join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
 where x.YYYYMM BETWEEN '202208' and '202211'
 and x.id = '01E685679696C9867F8FF57E04863525BC7B8933FBC303B252898F72C83C2A40'
 order by de_dt; 
@@ -128,69 +128,47 @@ order by de_dt;
 
 
 -- Arbor_sourcing_M1 모수 테이블
-
 with temp as (
-   select
-       a.YYYYMM,
-       a.id,
-       a.gender,
-       max(a.age) as age
-   from
-       cx.fct_K7_Monthly a
-       join cx.product_master_temp b on a.product_code = b.PROD_ID
-           and b.CIGADEVICE = 'CIGARETTES'
-           and b.cigatype != 'CSV'
-           and len(a.id) > 4 
-   where
-       exists (
-           -- (1) 직전 3개월 동안 구매이력이 있는지 확인
-           select 1
-           from cx.fct_K7_Monthly x
-           where
-               x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
-               				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
-               and a.id = x.id  
-           group by x.id, x.YYYYMM 
-           having count(distinct x.product_code) < 11 and sum( Pack_qty) < 61.0  and sum(Pack_qty) > 0
-       )
-       and a.YYYYMM >= '202211' -- (2) Since 2022.11
-   group by
-       a.id, a.gender, a.YYYYMM
-   having
-       count(distinct a.product_code) < 11 -- (3) SKU 11종 미만
-       and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만
-),
-TEREA_Purchasers as (
-	select distinct
-	   b.ProductSubFamilyCode,
-	   a.YYYYMM,
-	   a.id,
-	   a.gender,
-	   a.age
-	from
-	   temp a
-	   join cx.fct_K7_Monthly c on a.id = c.id and a.YYYYMM = c.YYYYMM
-	   join cx.product_master_temp b on c.product_code = b.PROD_ID
-	       and b.CIGADEVICE = 'CIGARETTES'
-	       and b.cigatype != 'CSV'
-	       and len(a.id) > 4
-	       and b.ProductSubFamilyCode = 'TEREA'
-	where
-	   not exists (
-	       -- (4) 해당 월 이전에 같은 제품을 구매한 사람 제외
+select YYYYMM, id, count(*) ee
+from cx.fct_K7_Monthly a
+	join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+where exists (select 1 	-- (1) 3개월 구매이력 있는 ID만 추출
+				from cx.fct_K7_Monthly x
+					join cx.product_master y  on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
+				where  a.id = x.id
+				and x.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, a.YYYYMM+'01'), 112)
+				 				 AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, a.YYYYMM+'01'), 112)
+				group by YYYYMM, id
+				having count(distinct y.engname) < 11 and sum( x.Pack_qty) < 61.0  
+				)
+and a.YYYYMM >= '202211'
+and b.ProductSubFamilyCode = 'TEREA'
+and not exists (
+	       -- (2) 해당 월 이전에 같은 제품을 구매한 사람 제외
 	       select 1
 	       from cx.fct_K7_Monthly x
-				join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV' and len(x.id) > 4
+				join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV' 
 	       where x.id = a.id
-	           and x.YYYYMM < a.YYYYMM
-	           and y.engname = b.engname
+           and x.YYYYMM < a.YYYYMM
+           and y.ProductSubFamilyCode = b.ProductSubFamilyCode 		-- 중요한 조건
 	   )
+group by YYYYMM, id
+),
+TEREA_Purchasers as (
+select c.YYYYMM, c.id
+from temp a
+   join cx.fct_K7_Monthly c on a.id = c.id and a.YYYYMM = c.YYYYMM
+   join cx.product_master d  on c.product_code = d.PROD_ID and CIGADEVICE = 'CIGARETTES' and cigatype != 'CSV'
+group by c.YYYYMM, c.id
+-- (3) 각 월에 SKU 11종 미만, 팩수 61개 미만
+having count(distinct d.engname) < 11 and sum( c.Pack_qty) < 61.0  
 )
 -- 해당 월에 테리어를 구매한 구매자가 직전 3개월에는 어떤 제품을 구매했는지 소싱
+--insert into cx.agg_TEREA_Sourcing
 select 
 	t.YYYYMM, t.Id, 
-	max(t.gender) gender, 
-	max(t.age) age , 
+	max(a.gender) gender, 
+	max(a.age) age , 
     CASE 
         WHEN SUM(CASE WHEN b.cigatype = 'CC' and a.YYYYMM < t.YYYYMM THEN 1 ELSE 0 END) > 0 
          AND SUM(CASE WHEN b.cigatype = 'HnB' and a.YYYYMM < t.YYYYMM THEN 1 ELSE 0 END) > 0 
@@ -200,7 +178,7 @@ select
 	 STUFF(
        (SELECT ','+ trim(company) 
 	    FROM cx.fct_K7_Monthly x
-	     	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
+	     	join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' 
 	    where t.id = x.id
 		and x.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 						 AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)
@@ -211,7 +189,7 @@ select
 	 STUFF(
        (SELECT ','+ trim(New_Flavorseg) 
 	    FROM cx.fct_K7_Monthly x
-	     	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
+	     	join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' 
 	    where t.id = x.id
 		and x.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 						 AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)
@@ -279,47 +257,25 @@ select
 	sum(case when engname = 'TEREA SUN PEARL' then  a.Pack_qty end ) 'TEREA SUN PEARL',
 	sum(case when engname = 'TEREA TEAK' then  a.Pack_qty end ) 'TEREA TEAK',
 	sum(case when engname = 'TEREA YUGEN' then  a.Pack_qty end ) 'TEREA YUGEN'	
---into cx.agg_TEREA_Sourcing
+into cx.agg_TEREA_Sourcing2
 from TEREA_Purchasers t
 	join cx.fct_K7_Monthly a on t.id = a.id 	-- 구매자
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 						 AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
-	join cx.product_master_temp b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  cigatype != 'CSV' AND 4 < LEN(a.id)
+	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  cigatype != 'CSV' 
 where 1=1 
 group by t.YYYYMM, t.id
 --order by t.YYYYMM, t.id
 ;
 
--- For Python Aggregation
-select 
-	t.YYYYMM, t.id, t.gender, t.age, 
-	b.cigatype,
-	b.company,
-    b.ProductFamilyCode,
-    b.productSubFamilyCode,
-	b.New_FLAVORSEG,
-    b.New_TARSEGMENTAT,
-	b.engname,
-    sum(a.pack_qty) qty
-from  cx.agg_TEREA_Sourcing2 t
-	join cx.fct_K7_Monthly a on t.id = a.id 
-		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
-					     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
-join cx.product_master_temp b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)
-where t.YYYYMM='202211'	
-group by 
-	t.YYYYMM, t.id, t.gender, t.age,
-	b.cigatype,
-	b.company,
-    b.ProductFamilyCode,
-    b.productSubFamilyCode,
-	b.New_FLAVORSEG,
-    b.New_TARSEGMENTAT,
-	b.engname
-	;
+
+
+select YYYYMM, count(*) 
+from cx.agg_TEREA_Sourcing2
+group by YYYYMM;
 
 -- 엑셀 시트 데이터 반영 작업
--- Cigatype, Taste Total (Taste는 구매자 수가 다를 수 있음. 한 사람이 여러 맛을 구매)
+-- Cigatype, Taste Total (Taste는 구매자 수가 다를 수 있음. 한 사람이 여러 Taste를 구매)
 select 
 	t.YYYYMM,
 	count(distinct t.id) total_Purchaser_Cnt,
@@ -329,11 +285,11 @@ select
 	count(distinct case when New_FLAVORSEG ='Fresh' then t.id end ) 'Fresh',
 	count(distinct case when New_FLAVORSEG ='New Taste' then t.id end ) 'New Taste',
 	count(distinct case when New_FLAVORSEG ='Regular' then t.id end ) 'Regular'
-from  cx.agg_TEREA_Sourcing2 t
+from  cx.agg_TEREA_Sourcing t
 	join cx.fct_K7_Monthly a on t.id = a.id 
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
-	join cx.product_master_temp b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND b.cigatype != 'CSV' AND 4 < LEN(a.id)
+	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND b.cigatype != 'CSV'
 where 1=1 	-- Target Date
 group BY t.YYYYMM
 order by t.YYYYMM
@@ -419,28 +375,106 @@ SELECT YYYYMM,
     SUM([TEREA SUN PEARL]) AS "TEREA SUN PEARL",
     SUM([TEREA TEAK]) AS "TEREA TEAK",
     SUM([TEREA YUGEN]) AS "TEREA YUGEN"
-FROM cx.agg_TEREA_Sourcing2
+FROM cx.agg_TEREA_Sourcing
 GROUP BY YYYYMM
 ORDER BY YYYYMM
 ;
 
-select * from cx.fct_K7_Monthly
-where YYYYMM='202403'
-and product_code = '88023540';
 
+
+--count cigatype
+select *
+from (
+	select yyyymm, cigatype , count(id) ee
+	from cx.agg_TEREA_Sourcing
+	group by yyyymm, cigatype 
+) a
+pivot 
+	(sum(ee) for cigatype in ([CC], [HnB], [Mixed])) as b
+
+-- count flavor
+select
+	YYYYMM,
+	count(case when flavor like '%Fresh%' then id end) [Fresh],
+	count(case when flavor like '%New Taste%' then id end) [New Taste],
+	count(case when flavor like '%Regular%' then id end) [Regular]
+from cx.agg_TEREA_Sourcing
+group by YYYYMM
+order by YYYYMM
+;
+
+
+
+SELECT
+    p.yyyymm,
+    p.[CC],
+    p.[HnB],
+    p.[Mixed],
+    f.[Fresh],
+    f.[New Taste],
+    f.[Regular]
+FROM
+    (
+        SELECT
+            yyyymm,
+            [CC],
+            [HnB],
+            [Mixed]
+        FROM
+            (
+                SELECT
+                    yyyymm,
+                    cigatype,
+                    COUNT(id) AS ee
+                FROM
+                    cx.agg_TEREA_Sourcing
+                GROUP BY
+                    yyyymm,
+                    cigatype
+            ) AS a
+        PIVOT (
+            SUM(ee) FOR cigatype IN ([CC], [HnB], [Mixed])
+        ) AS pvt
+    ) AS p
+JOIN
+    (
+        SELECT
+            YYYYMM,
+            COUNT(CASE WHEN flavor LIKE '%Fresh%' THEN id END) AS [Fresh],
+            COUNT(CASE WHEN flavor LIKE '%New Taste%' THEN id END) AS [New Taste],
+            COUNT(CASE WHEN flavor LIKE '%Regular%' THEN id END) AS [Regular]
+        FROM
+            cx.agg_TEREA_Sourcing
+        GROUP BY
+            YYYYMM
+    ) AS f
+ON
+    p.yyyymm = f.yyyymm
+ORDER BY
+    p.yyyymm;
+
+
+
+
+
+
+
+
+
+-- Pivot 이 필요한 대상들...
 -- Arbor_user_current_type_M1
 with temp as (
 select  
 	t.YYYYMM, t.id,
-	max(case when cigatype='HnB' and company = 'PMK' then 1 else 0 end) IQOS_Purchased,
-	max(case when cigatype='CC' then 1 else 0 end) CC_Purchased,
-	max(case when cigatype='HnB' and company != 'PMK' then 1 else 0 end) CompHnB_Purchased
+	max(case when b.cigatype='HnB' and b.company = 'PMK' then 1 else 0 end) IQOS_Purchased,
+	max(case when b.cigatype='CC' then 1 else 0 end) CC_Purchased,
+	max(case when b.cigatype='HnB' and b.company != 'PMK' then 1 else 0 end) CompHnB_Purchased
 from  cx.agg_TEREA_Sourcing t
 	join cx.fct_K7_Monthly a on t.id = a.id 
 		and a.YYYYMM = t.YYYYMM
-	join cx.product_master_temp b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  cigatype != 'CSV' AND 4 < LEN(a.id)
+	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
 where 1=1 -- Target Date
-group BY 	    
+group BY 	    	
 	t.YYYYMM, t.id
 )
 select YYYYMM,
@@ -454,50 +488,38 @@ group by YYYYMM,
     'IQOS' +
     CASE WHEN CompHnB_Purchased = 1 THEN ' + Comp. HnB' ELSE '' END + 
     CASE WHEN CC_Purchased = 1 THEN ' + CC' ELSE '' END 
-order by YYYYMM;
+order by YYYYMM, 2;
 
 
 
 -- arbor_user_past_type_M1
-with temp as (
-select  ;
+select  
 	t.YYYYMM, t.id,
-	max(case when cigatype='HnB' and company = 'PMK' then 1 else 0 end) IQOS_Purchased,
-	max(case when cigatype='CC' then 1 else 0 end) CC_Purchased,
-	max(case when cigatype='HnB' and company != 'PMK' then 1 else 0 end) CompHnB_Purchased
+	max(case when b.cigatype='HnB' and b.company = 'PMK' then 1 else 0 end) IQOS_Purchased,
+	max(case when b.cigatype='CC' then 1 else 0 end) CC_Purchased,
+	max(case when b.cigatype='HnB' and b.company != 'PMK' then 1 else 0 end) CompHnB_Purchased
 from  cx.agg_TEREA_Sourcing t
 	join cx.fct_K7_Monthly a on t.id = a.id 
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
-	join cx.product_master_temp b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  cigatype != 'CSV' AND 4 < LEN(a.id)
+	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
 where 1=1 	-- Target Date
 group BY 	    
 	t.YYYYMM, t.id
-)
-select 
-    CASE WHEN IQOS_Purchased = 1 THEN 'IQOS' ELSE '' END  +
-    CASE WHEN CompHnB_Purchased = 1 THEN ' + Comp. HnB' ELSE '' END + 
-    CASE WHEN CC_Purchased = 1 THEN ' + CC' ELSE '' END
-     as Cigatype,
-    count(*) purchaser_cnt
-from temp
-group by
-    CASE WHEN IQOS_Purchased = 1 THEN 'IQOS' ELSE '' END  +
-    CASE WHEN CompHnB_Purchased = 1 THEN ' + Comp. HnB' ELSE '' END + 
-    CASE WHEN CC_Purchased = 1 THEN ' + CC' ELSE '' END
 ;
 
--- arbor_flaXtar_M1   
+
+-- TEREA_flaXtar_ from 202211
 select  
 	t.YYYYMM,
 	concat(New_FLAVORSEG,' X ', New_TARSEGMENTAT) flavorXtar,
-	count(distinct case when cigatype ='CC' then t.id end) CC,
-	count(distinct case when cigatype ='HnB' then t.id end) HnB
+	count(distinct case when b.cigatype ='CC' then t.id end) CC,
+	count(distinct case when b.cigatype ='HnB' then t.id end) HnB
 from cx.agg_TEREA_Sourcing t
 	join cx.fct_K7_Monthly a on t.id = a.id 
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
-	join cx.product_master_temp b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  cigatype != 'CSV' AND 4 < LEN(a.id)
+	join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND b.cigatype != 'CSV'  
 where 1=1 -- Target Date
 group BY t.YYYYMM, concat(New_FLAVORSEG,' X ', New_TARSEGMENTAT)  
 order by t.YYYYMM, concat(New_FLAVORSEG,' X ', New_TARSEGMENTAT)
