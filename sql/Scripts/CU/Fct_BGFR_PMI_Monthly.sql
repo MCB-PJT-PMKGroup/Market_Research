@@ -1,7 +1,3 @@
---DROP TABLE BPDA.cu.Fct_BGFR_PMI_Monthly;
-
-
-
 -- BPDA.cu.Fct_BGFR_PMI_Monthly definition
 
 -- Drop table
@@ -9,20 +5,22 @@
 -- DROP TABLE BPDA.cu.Fct_BGFR_PMI_Monthly;
 
 CREATE TABLE BPDA.cu.Fct_BGFR_PMI_Monthly (
-	YM_CD varchar(20) COLLATE Korean_Wansung_CI_AS NULL,
-	SIDO_CD tinyint NULL,
+	YM_CD varchar(20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	SIDO_CD tinyint NOT NULL,
 	CUST_ID nvarchar(100) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	GENDER_CD tinyint NULL,
 	AGE_CD tinyint NULL,
-	ITEM_CD varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
+	ITEM_CD varchar(50) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	SALE_QTY float NULL,
 	PACK_QTY float NULL,
-	pk_id int IDENTITY(1,1) NOT NULL,
-	CONSTRAINT PK__Fct_BGFR__1543595E65F36A75 PRIMARY KEY (pk_id)
+	seq int IDENTITY(1,1) NOT NULL,
+	CONSTRAINT PK_fct_BGFR_PMI_Monthly PRIMARY KEY (ITEM_CD,CUST_ID,YM_CD,SIDO_CD)
 );
- CREATE NONCLUSTERED INDEX ix_Fct_BGFR_PMI_Monthly_cust_id ON cu.Fct_BGFR_PMI_Monthly (  CUST_ID ASC  )  
-	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
-	 ON [PRIMARY ] ;
+
+alter table cu.Fct_BGFR_PMI_Monthly  add constraint PK_fct_BGFR_PMI_Monthly primary key (ITEM_CD, CUST_ID, YM_CD, SIDO_CD );
+
+update statistics cu.fct_BGFR_PMI_Monthly;
+-- update statistics cx.fct_k7_monthly;
 
 --insert into cu.Fct_BGFR_PMI_Monthly 
 --	(YM_CD
@@ -45,9 +43,30 @@ CREATE TABLE BPDA.cu.Fct_BGFR_PMI_Monthly (
 --from cu.BGFR_PMI_202301 a
 --	left join cu.dim_CU_master b on a.ITEM_CD = b.PROD_ID ;
 
-update cu.Fct_BGFR_PMI_Monthly
-set PACK_QTY = a.SALE_QTY * b.SAL_QNT 
-from cu.Fct_BGFR_PMI_Monthly a
-	join cu.dim_CU_master b on a.ITEM_CD = b.PROD_ID  
-;
+-- update cu.Fct_BGFR_PMI_Monthly
+-- set PACK_QTY = a.SALE_QTY * b.SAL_QNT 
+-- from cu.Fct_BGFR_PMI_Monthly a
+-- 	join cu.dim_CU_master b on a.ITEM_CD = b.PROD_ID  
+-- ;
+
+
+
+--202301 1,637,029
+--202302 1,567,616
+--202303 1,737,333
+--202304 1,734,126
+--202305 1,816,764
+--202306 1,791,262
+--202307 1,801,693
+--202308 1,806,478
+--202309 1,819,937
+--202310 1,797,934
+--202311 1,669,557
+--202312 1,672,828
+--202401 1,637,875
+--202402 1,624,032
+--202403 1,727,622
+--202404 1,773,180
+--202405 1,821,034
+--202406 1,809,086
 

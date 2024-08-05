@@ -1,11 +1,5 @@
--- BPDA.cu.dim_CU_master definition
-
--- Drop table
-
--- DROP TABLE BPDA.cu.dim_CU_master;
-
-CREATE TABLE BPDA.cu.dim_CU_master (
-	PROD_ID varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
+CREATE TABLE BPDA.cu.dim_product_master (
+	PROD_ID nvarchar(50) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	ENGNAME nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	ProductDescription nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	ProductFamilyCode nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
@@ -18,16 +12,109 @@ CREATE TABLE BPDA.cu.dim_CU_master (
 	THICKSEG nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	TARSEGMENTAT nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	CAPSULEYN bit NULL,
-	TARINFO float NULL,
-	Company nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
-	SAL_QNT float NULL,
+	TARINFO decimal(18,10) NULL,
+	Company nvarchar(50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	SAL_QNT decimal(18,10) NOT NULL,
 	ProductSubFamilyCode nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	Productcode nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	MKTD_BRDCODE nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	SMARTSRCCode nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
-	New_FLAVORSEG varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
-	New_TARSEGMENTAT varchar(50) COLLATE Korean_Wansung_CI_AS NULL
+	FLAVORSEG_type3 varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
+	New_TARSEGMENTAT varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
+	FLAVORSEG_type6 varchar(50) COLLATE Korean_Wansung_CI_AS NULL
 );
- CREATE NONCLUSTERED INDEX ix_dim_CU_master_PROD_ID ON cu.dim_CU_master (  PROD_ID ASC  )  
-	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
-	 ON [PRIMARY ] ;
+
+-- PK 생성
+alter table cu.Fct_BGFR_PMI_Monthly  add constraint PK_fct_BGFR_PMI_Monthly primary key (ITEM_CD, CUST_ID, YM_CD, SIDO_CD );
+
+
+-- Taste Column : FLAVORSEG
+--FS1: Regular						: Regular
+--FS2: Regular Fresh				: Fresh
+--FS3: Regular to Fresh				: Fresh
+--FS4: Regular to New Taste			: New Taste
+--FS5: Fresh to Fresh				: Fresh
+--FS7: Aftercut (New Taste)			: New Taste
+--FS8: Fresh to New Taste			: New Taste
+--FS9: NTD (Fresh to NTD)			: New Taste
+--FS10: NTD (Regular to NTD)		: New Taste
+--FS11: Fresh (Fresh to Fresh)		: Fresh
+--FS12: Fresh (Regular to Fresh)	: Fresh
+--FS13: Fresh (Regular Fresh)		: Fresh
+--FS14: NTD (Aftercut)				: New Taste
+
+update a
+set a.FLAVORSEG_type3 = 
+	CASE 
+	    WHEN b.FLAVORSEG like 'FS1:%' THEN 'Regular'
+	    WHEN b.FLAVORSEG like 'FS2:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS3:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS4:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS5:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS7:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS8:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS9:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS10:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS11:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS12:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS13:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS14:%' THEN 'New Taste'
+	    when b.FLAVORSEG like 'Aftercut (New%' then 'New Taste'
+	    when b.FLAVORSEG like 'Regular Fresh' then 'Fresh' 
+	    when b.FLAVORSEG like 'Regular to Fresh' then 'Fresh'
+		when b.FLAVORSEG like 'Regular to New Taste' then 'New Taste'
+		when b.FLAVORSEG like 'Fresh to New Taste' then 'New Taste'
+    ELSE b.FLAVORSEG
+    end 
+	from cu.dim_product_master a
+		join cu.dim_product_master b on a.prod_id = b.prod_id;
+
+
+update a
+set a.FLAVORSEG_type6 = 
+	CASE 
+	    WHEN b.FLAVORSEG like 'FS1:%' THEN 'Regular'
+	    WHEN b.FLAVORSEG like 'FS2:%' THEN 'Regular to Fresh'
+	    WHEN b.FLAVORSEG like 'FS3:%' THEN 'Regular to Fresh'
+	    WHEN b.FLAVORSEG like 'FS4:%' THEN 'Regular to New Taste'
+	    WHEN b.FLAVORSEG like 'FS5:%' THEN 'Fresh to Fresh'
+	    WHEN b.FLAVORSEG like 'FS7:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS8:%' THEN 'Fresh to New Taste'
+	    WHEN b.FLAVORSEG like 'FS9:%' THEN 'Fresh to New Taste'
+	    WHEN b.FLAVORSEG like 'FS10:%' THEN 'Regular to New Taste'
+	    WHEN b.FLAVORSEG like 'FS11:%' THEN 'Fresh to Fresh'
+	    WHEN b.FLAVORSEG like 'FS12:%' THEN 'Regular to Fresh'
+	    WHEN b.FLAVORSEG like 'FS13:%' THEN 'Regular Fresh'
+	    WHEN b.FLAVORSEG like 'FS14:%' THEN 'New Taste'
+	    when b.FLAVORSEG like 'Aftercut (New%' then 'New Taste'
+	    when b.FLAVORSEG like 'Regular Fresh' then 'Regular Fresh' 
+	    when b.FLAVORSEG like 'Regular to Fresh' then 'Regular to Fresh'
+		when b.FLAVORSEG like 'Regular to New Taste' then 'Regular to New Taste'
+		when b.FLAVORSEG like 'Fresh to New Taste' then 'Fresh to New Taste'
+    ELSE b.FLAVORSEG
+    end 
+	from cu.dim_product_master a
+		join cu.dim_product_master b on a.prod_id = b.prod_id;
+
+
+--Regular
+
+-- Tar : TARSEGMENTAT 
+--TS1: FF
+--TS2: LTS
+--TS3: ULT
+--TS4: 1MG
+--TS5: Below 1MG
+update A 
+set a.New_TARSEGMENTAT =
+	CASE 
+    	when b.TARSEGMENTAT like 'TS1:%' then 'FF'
+    	when b.TARSEGMENTAT like 'TS2:%' then 'LTS'
+    	when b.TARSEGMENTAT like 'TS3:%' then 'ULT'
+    	when b.TARSEGMENTAT like 'TS4:%' then '1MG'
+    	when b.TARSEGMENTAT like 'TS5:%' then 'Below 1MG'
+    	else b.TARSEGMENTAT 
+    END
+from cu.dim_product_master a
+	join cu.dim_product_master b on a.prod_id = b.prod_id;
+
