@@ -14,13 +14,16 @@ CREATE TABLE BPDA.cu.Fct_BGFR_PMI_Monthly (
 	SALE_QTY float NULL,
 	PACK_QTY float NULL,
 	seq int IDENTITY(1,1) NOT NULL,
-	CONSTRAINT PK_fct_BGFR_PMI_Monthly PRIMARY KEY (ITEM_CD,CUST_ID,YM_CD,SIDO_CD)
+	SIDO_NM varchar(50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	CONSTRAINT Fct_BGFR_PMI_Monthly_PK PRIMARY KEY (CUST_ID,ITEM_CD,YM_CD,SIDO_NM)
 );
 
 alter table cu.Fct_BGFR_PMI_Monthly  add constraint PK_fct_BGFR_PMI_Monthly primary key (ITEM_CD, CUST_ID, YM_CD, SIDO_CD );
 
 update statistics cu.fct_BGFR_PMI_Monthly;
 -- update statistics cx.fct_k7_monthly;
+
+
 
 --insert into cu.Fct_BGFR_PMI_Monthly 
 --	(YM_CD
@@ -48,6 +51,13 @@ update statistics cu.fct_BGFR_PMI_Monthly;
 -- from cu.Fct_BGFR_PMI_Monthly a
 -- 	join cu.dim_CU_master b on a.ITEM_CD = b.PROD_ID  
 -- ;
+
+
+--update a 
+--set a.SIDO_NM = b.SIDO_NM 
+--from cu.Fct_BGFR_PMI_Monthly a
+--	join cu.BGFR_PMI_202406 b on a.SIDO_CD = b.SIDO_CD 
+--where a.SIDO_NM is NULL ;
 
 
 

@@ -1,3 +1,5 @@
+
+
 CREATE TABLE BPDA.cu.dim_product_master (
 	PROD_ID nvarchar(50) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	ENGNAME nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
@@ -21,11 +23,15 @@ CREATE TABLE BPDA.cu.dim_product_master (
 	SMARTSRCCode nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	FLAVORSEG_type3 varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	New_TARSEGMENTAT varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
-	FLAVORSEG_type6 varchar(50) COLLATE Korean_Wansung_CI_AS NULL
+	FLAVORSEG_type6 varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
+	CONSTRAINT PK_dim_product_master PRIMARY KEY (PROD_ID)
 );
 
--- PK 생성
-alter table cu.Fct_BGFR_PMI_Monthly  add constraint PK_fct_BGFR_PMI_Monthly primary key (ITEM_CD, CUST_ID, YM_CD, SIDO_CD );
+-- 비어있는 data 찾기
+select * 
+from cu.cu_master_tmp a
+	left join  cu.dim_product_master b on a.PROD_ID = b.PROD_ID 
+where b.prod_id is null;
 
 
 -- Taste Column : FLAVORSEG

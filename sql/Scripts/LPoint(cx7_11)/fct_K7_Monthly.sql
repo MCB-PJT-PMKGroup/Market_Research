@@ -17,13 +17,6 @@ CREATE TABLE BPDA.cx.fct_K7_Monthly (
 	CONSTRAINT pk_fct_k7_Monthly_id_product_code PRIMARY KEY (id,product_code,YYYYMM,rct_seq)
 );
  
-
-update a
-set a.Pack_qty = a.buy_ct * cast(b.sal_qnt as decimal)
-from cx.fct_K7_Monthly a
-	left join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.CIGATYPE != 'CSV'
-;
-
 -- 1,089,136 rows
 insert into cx.fct_K7_Monthly 
 select 
@@ -41,11 +34,24 @@ from cx.K7_202406 a
 ;
 
 
+update a
+set a.Pack_qty = a.buy_ct * cast(b.sal_qnt as decimal)
+from cx.fct_K7_Monthly a
+	left join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.CIGATYPE != 'CSV'
+;
+
+
+
 
 -- 담배제품 매핑안된 구매건수 0으로 pack_qty 업데이트
 --Updated Rows	1604137
 update cx.fct_K7_Monthly 
 set Pack_qty = 0
+where Pack_qty is null;
+
+--1799633
+select * 
+from cx.fct_K7_Monthly a
 where Pack_qty is null;
 
 

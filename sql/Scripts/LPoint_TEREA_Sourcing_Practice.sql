@@ -15,68 +15,51 @@ where YYYYMM='202403';
 select * from cx.product_master 
 where ProductSubFamilyCode='TEREA';
 
--- Arber Pearl Sourcing 기본 가공 - Base
+-- Sourcing 기본 가공
 -- 2024년 3월 SKU 11개 이하, qty_sum < 61.0  && 직전 3개월 구매이력 있는 사람들
-with temp as (
-	select 
-		 'TEREA' SKU, 
-		 YYYYMM, 
-		 id,  
-		 gender, 
-		 max(age) age
-	FROM
-		 cx.fct_K7_Monthly a
-		    join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  cigatype != 'CSV' AND 4 < LEN(a.id)
-	where 1=1
-	and  exists (
-		-- 직전 3개월 동안 구매이력이 최소 1건 있는 구매자만 대상
-		select 1 
-		from cx.fct_K7_Monthly x
-	    	join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
-		where x.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, a.YYYYMM+'01'), 112)
-						   AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, a.YYYYMM+'01'), 112) 
-		and a.id = x.id
-		group by x.id, x.YYYYMM
-		-- 각 월에 SKU 11종 미만, 팩수 61개 미만
-		having (count(distinct y.engname) < 11 and sum( Pack_qty) < 61.0 )
-	)
-	and a.YYYYMM >= '202211'		-- 타겟 date 
-	group by id, gender, YYYYMM
-	having (count(distinct engname) < 11 and sum(Pack_qty) < 61.0 )
+with temp as ( 
+	-- (1) 최초 구매이력이 있는지 확인
+   select min(a.YYYYMM) YYYYMM, id
+   from
+       cx.fct_K7_Monthly a
+       join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+   where 1=1
+	and b.ProductSubFamilyCode = 'TEREA'	
+   group by a.id
 )
---insert into cx.agg_TEREA_Sourcing
-select distinct
-	b.ProductSubFamilyCode,
-	a.YYYYMM,
-	a.id, 
-	a.gender, 
-	a.age
-into cx.agg_TEREA_Sourcing_tmp
-from temp a
-	join cx.product_master b on CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)  and a.SKU = b.ProductSubFamilyCode 
--- 저번 달 구매자는 제외
-where not exists (SELECT 1 FROM cx.fct_K7_Monthly WHERE id = a.id and YYYYMM <= CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, a.YYYYMM+'01'), 112) and product_code =  b.prod_id )
-and id in ( 
-	select id 
-	FROM
-		 cx.fct_K7_Monthly x
-		    join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id) 
-    and x.YYYYMM = a.YYYYMM
-    and y.engname = b.ENGNAME 
-	)
+select t.YYYYMM, t.id
+from temp t
+	join cx.fct_K7_Monthly a on a.id = t.id  and  a.YYYYMM = t.YYYYMM
+	join cx.product_master b on a.product_code = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+where t.YYYYMM = '202305'
+and
+   exists (
+       -- (2) 직전 3개월 동안 구매이력이 있는지 확인
+       select 1
+       from cx.fct_K7_Monthly x
+       	join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
+       where
+           x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
+           				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
+           and a.id = x.id
+   )
+group by t.YYYYMM, t.id 
+   having
+       count(distinct b.engname) < 11 -- (3) SKU 11종 미만
+       and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만
 ;
 
 -- Data Validation 데이터 검증 작업!!!!!!!!!!!!!
 -- 중복 체크
 select YYYYMM , id, count(*) 
-from cx.agg_TEREA_Sourcing
+from cx.agg_LPoint_TEREA_Sourcing
 group by YYYYMM, id 
 having count(*) > 1
 ;
 
 -- 회사별 제품 구매 내역 
-select * from cx.agg_TEREA_Sourcing 
-where id ='00851229FF4A0026F2682594CEDABB0AE1B73FF85E6CDED060ED4FB00B37ECC9';
+select * from cx.agg_LPoint_TEREA_Sourcing
+where id ='4125DC0ABD7241AD308C5AC00276B9E4433169BD2FA1C8B2B6C586A7A7B2B604';
 
 -- 해당 월에 제품을 구매한 이력
 select YYYYMM, id, count(*) purchase_cnt
@@ -102,25 +85,26 @@ and id not in (
 		group by id, YYYYMM
 		having (count(distinct product_code) >= 11 or sum( Pack_qty) >= 61.0 )
 )
-and id ='00851229FF4A0026F2682594CEDABB0AE1B73FF85E6CDED060ED4FB00B37ECC9'
+and id ='4125DC0ABD7241AD308C5AC00276B9E4433169BD2FA1C8B2B6C586A7A7B2B604'
 group by YYYYMM, id
 -- 각 월에 SKU 11종 미만, 팩수 61개 미만
 having (count(distinct product_code) < 11 and sum( Pack_qty) < 61.0 );
 
 
 --직전 3개월 다른 제품 구매이력 여부 및 SKU, pack 수 체크
-select YYYYMM, count(distinct product_code) sku, sum(Pack_qty) sum 
-from cx.fct_K7_Monthly 
-where id ='00851229FF4A0026F2682594CEDABB0AE1B73FF85E6CDED060ED4FB00B37ECC9'
-		and YYYYMM BETWEEN '202208' and '202210'
+select YYYYMM, count(distinct engname) sku, sum(Pack_qty) sum 
+from cx.fct_K7_Monthly  x
+	join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
+where id ='8728AF404CFA4E2CB5737496B6A6E106B765ECA7EEF3525B7D4666983B13F4D1'
+		and YYYYMM BETWEEN '202401' and '202404'
 group by YYYYMM;
 
 --직전 3개월 구매 상세 이력 
 select engname, productdescription, prod_id, de_dt, id, gender, age, YYYYMM, pack_qty
 from cx.fct_K7_Monthly x
 	join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
-where x.YYYYMM BETWEEN '202208' and '202211'
-and x.id = '01E685679696C9867F8FF57E04863525BC7B8933FBC303B252898F72C83C2A40'
+where x.YYYYMM BETWEEN '202301' and '202305'
+and x.id = 'CE6660222E001575BBCCFBD1613DE0144A5EC0451AA41EA9D3CE5470F7596C25'
 order by de_dt; 
 
 -- 데이터 검증 끝
@@ -138,8 +122,6 @@ where exists (select 1 	-- (1) 3개월 구매이력 있는 ID만 추출
 				where  a.id = x.id
 				and x.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, a.YYYYMM+'01'), 112)
 				 				 AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, a.YYYYMM+'01'), 112)
-				group by YYYYMM, id
-				having count(distinct y.engname) < 11 and sum( x.Pack_qty) < 61.0  
 				)
 and a.YYYYMM >= '202211'
 and b.ProductSubFamilyCode = 'TEREA'
@@ -164,7 +146,7 @@ group by c.YYYYMM, c.id
 having count(distinct d.engname) < 11 and sum( c.Pack_qty) < 61.0  
 )
 -- 해당 월에 테리어를 구매한 구매자가 직전 3개월에는 어떤 제품을 구매했는지 소싱
---insert into cx.agg_TEREA_Sourcing
+--insert into cx.agg_LPoint_TEREA_Sourcing
 select 
 	t.YYYYMM, t.Id, 
 	max(a.gender) gender, 
@@ -187,13 +169,13 @@ select
 	  )
 	  , 1, 1, '') AS [company],
 	 STUFF(
-       (SELECT ','+ trim(New_Flavorseg) 
+       (SELECT ','+ trim(FLAVORSEG_type3) 
 	    FROM cx.fct_K7_Monthly x
 	     	join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' 
 	    where t.id = x.id
 		and x.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 						 AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)
-	    group by New_Flavorseg
+	    group by FLAVORSEG_type3
 	    FOR XML PATH('')
 	  )
 	  , 1, 1, '') AS [Flavor],
@@ -201,32 +183,32 @@ select
 	sum(case when company='JTI' then a.Pack_qty end ) 'JTI',
 	sum(case when company='KTG' then a.Pack_qty end ) 'KTG',
 	sum(case when company='PMK' then a.Pack_qty end ) 'PMK',
-	sum(case when cigatype='CC' and New_Flavorseg = 'Fresh' then a.Pack_qty end ) 'CC Fresh',
-	sum(case when cigatype='CC' and New_Flavorseg = 'New Taste' then  a.Pack_qty end ) 'CC New Taste',
-	sum(case when cigatype='CC' and New_Flavorseg = 'Regular' then  a.Pack_qty end ) 'CC Regular',
-	sum(case when cigatype='HnB' and New_Flavorseg = 'Fresh' then  a.Pack_qty end ) 'HnB Fresh',
-	sum(case when cigatype='HnB' and New_Flavorseg = 'New Taste' then  a.Pack_qty end ) 'HnB New Taste',
-	sum(case when cigatype='HnB' and New_Flavorseg = 'Regular' then  a.Pack_qty end ) 'HnB Regular',
-	sum(case when b.productSubFamilyCode = 'AIIM' and New_FLAVORSEG = 'Fresh' then  a.Pack_qty end ) 'AIIM Fresh',
-	sum(case when b.productSubFamilyCode = 'AIIM' and New_FLAVORSEG = 'New Taste' then  a.Pack_qty end ) 'AIIM New Taste',
-	sum(case when b.productSubFamilyCode = 'AIIM' and New_FLAVORSEG = 'Regular' then  a.Pack_qty end ) 'AIIM Regular',
-	sum(case when b.productSubFamilyCode = 'FIIT' and New_FLAVORSEG = 'Fresh' then  a.Pack_qty end ) 'FIIT Fresh',
-	sum(case when b.productSubFamilyCode = 'FIIT' and New_FLAVORSEG = 'New Taste' then  a.Pack_qty end ) 'FIIT New Taste',
-	sum(case when b.productSubFamilyCode = 'HEETS' and New_FLAVORSEG = 'Fresh' then  a.Pack_qty end ) 'HEETS Fresh',
-	sum(case when b.productSubFamilyCode = 'HEETS' and New_FLAVORSEG = 'New Taste' then  a.Pack_qty end ) 'HEETS New Taste',
-	sum(case when b.productSubFamilyCode = 'HEETS' and New_FLAVORSEG = 'Regular' then  a.Pack_qty end ) 'HEETS Regular',
-	sum(case when b.productSubFamilyCode = 'MIIX' and New_FLAVORSEG = 'Fresh' then  a.Pack_qty end ) 'MIIX Fresh',
-	sum(case when b.productSubFamilyCode = 'MIIX' and New_FLAVORSEG = 'New Taste' then  a.Pack_qty end ) 'MIIX New Taste' ,
-	sum(case when b.productSubFamilyCode = 'MIIX' and New_FLAVORSEG = 'Regular' then  a.Pack_qty end ) 'MIIX Regular',
-	sum(case when b.productSubFamilyCode = 'NEO' and New_FLAVORSEG = 'Fresh' then  a.Pack_qty end ) 'NEO Fresh',
-	sum(case when b.productSubFamilyCode = 'NEO' and New_FLAVORSEG = 'New Taste' then  a.Pack_qty end ) 'NEO New Taste',
-	sum(case when b.productSubFamilyCode = 'NEO' and New_FLAVORSEG = 'Regular' then  a.Pack_qty end ) 'NEO Regular',
-	sum(case when b.productSubFamilyCode = 'NEOSTICKS' and New_FLAVORSEG = 'Fresh' then  a.Pack_qty end ) 'NEOSTICKS Fresh',
-	sum(case when b.productSubFamilyCode = 'NEOSTICKS' and New_FLAVORSEG = 'New Taste' then  a.Pack_qty end ) 'NEOSTICKS New Taste',
-	sum(case when b.productSubFamilyCode = 'NEOSTICKS' and New_FLAVORSEG = 'Regular' then  a.Pack_qty end ) 'NEOSTICKS Regular',
-	sum(case when b.productSubFamilyCode = 'TEREA' and New_FLAVORSEG = 'Fresh' then  a.Pack_qty end ) 'TEREA Fresh' ,
-	sum(case when b.productSubFamilyCode = 'TEREA' and New_FLAVORSEG = 'New Taste' then  a.Pack_qty end ) 'TEREA New Taste',
-	sum(case when b.productSubFamilyCode = 'TEREA' and New_FLAVORSEG = 'Regular' then  a.Pack_qty end ) 'TEREA Regular',
+	sum(case when cigatype='CC' and FLAVORSEG_type3 = 'Fresh' then a.Pack_qty end ) 'CC Fresh',
+	sum(case when cigatype='CC' and FLAVORSEG_type3 = 'New Taste' then  a.Pack_qty end ) 'CC New Taste',
+	sum(case when cigatype='CC' and FLAVORSEG_type3 = 'Regular' then  a.Pack_qty end ) 'CC Regular',
+	sum(case when cigatype='HnB' and FLAVORSEG_type3 = 'Fresh' then  a.Pack_qty end ) 'HnB Fresh',
+	sum(case when cigatype='HnB' and FLAVORSEG_type3 = 'New Taste' then  a.Pack_qty end ) 'HnB New Taste',
+	sum(case when cigatype='HnB' and FLAVORSEG_type3 = 'Regular' then  a.Pack_qty end ) 'HnB Regular',
+	sum(case when b.productSubFamilyCode = 'AIIM' and FLAVORSEG_type3 = 'Fresh' then  a.Pack_qty end ) 'AIIM Fresh',
+	sum(case when b.productSubFamilyCode = 'AIIM' and FLAVORSEG_type3 = 'New Taste' then  a.Pack_qty end ) 'AIIM New Taste',
+	sum(case when b.productSubFamilyCode = 'AIIM' and FLAVORSEG_type3 = 'Regular' then  a.Pack_qty end ) 'AIIM Regular',
+	sum(case when b.productSubFamilyCode = 'FIIT' and FLAVORSEG_type3 = 'Fresh' then  a.Pack_qty end ) 'FIIT Fresh',
+	sum(case when b.productSubFamilyCode = 'FIIT' and FLAVORSEG_type3 = 'New Taste' then  a.Pack_qty end ) 'FIIT New Taste',
+	sum(case when b.productSubFamilyCode = 'HEETS' and FLAVORSEG_type3 = 'Fresh' then  a.Pack_qty end ) 'HEETS Fresh',
+	sum(case when b.productSubFamilyCode = 'HEETS' and FLAVORSEG_type3 = 'New Taste' then  a.Pack_qty end ) 'HEETS New Taste',
+	sum(case when b.productSubFamilyCode = 'HEETS' and FLAVORSEG_type3 = 'Regular' then  a.Pack_qty end ) 'HEETS Regular',
+	sum(case when b.productSubFamilyCode = 'MIIX' and FLAVORSEG_type3 = 'Fresh' then  a.Pack_qty end ) 'MIIX Fresh',
+	sum(case when b.productSubFamilyCode = 'MIIX' and FLAVORSEG_type3 = 'New Taste' then  a.Pack_qty end ) 'MIIX New Taste' ,
+	sum(case when b.productSubFamilyCode = 'MIIX' and FLAVORSEG_type3 = 'Regular' then  a.Pack_qty end ) 'MIIX Regular',
+	sum(case when b.productSubFamilyCode = 'NEO' and FLAVORSEG_type3 = 'Fresh' then  a.Pack_qty end ) 'NEO Fresh',
+	sum(case when b.productSubFamilyCode = 'NEO' and FLAVORSEG_type3 = 'New Taste' then  a.Pack_qty end ) 'NEO New Taste',
+	sum(case when b.productSubFamilyCode = 'NEO' and FLAVORSEG_type3 = 'Regular' then  a.Pack_qty end ) 'NEO Regular',
+	sum(case when b.productSubFamilyCode = 'NEOSTICKS' and FLAVORSEG_type3 = 'Fresh' then  a.Pack_qty end ) 'NEOSTICKS Fresh',
+	sum(case when b.productSubFamilyCode = 'NEOSTICKS' and FLAVORSEG_type3 = 'New Taste' then  a.Pack_qty end ) 'NEOSTICKS New Taste',
+	sum(case when b.productSubFamilyCode = 'NEOSTICKS' and FLAVORSEG_type3 = 'Regular' then  a.Pack_qty end ) 'NEOSTICKS Regular',
+	sum(case when b.productSubFamilyCode = 'TEREA' and FLAVORSEG_type3 = 'Fresh' then  a.Pack_qty end ) 'TEREA Fresh' ,
+	sum(case when b.productSubFamilyCode = 'TEREA' and FLAVORSEG_type3 = 'New Taste' then  a.Pack_qty end ) 'TEREA New Taste',
+	sum(case when b.productSubFamilyCode = 'TEREA' and FLAVORSEG_type3 = 'Regular' then  a.Pack_qty end ) 'TEREA Regular',
 	sum(case when engname = 'HEETS AMBER LABEL' then  a.Pack_qty end ) 'HEETS AMBER LABEL',
 	sum(case when engname = 'HEETS BLACK GREEN SELECTION' then  a.Pack_qty end ) 'HEETS BLACK GREEN SELECTION',
 	sum(case when engname = 'HEETS BLACK PURPLE SELECTION' then  a.Pack_qty end ) 'HEETS BLACK PURPLE SELECTION',
@@ -257,9 +239,10 @@ select
 	sum(case when engname = 'TEREA SUN PEARL' then  a.Pack_qty end ) 'TEREA SUN PEARL',
 	sum(case when engname = 'TEREA TEAK' then  a.Pack_qty end ) 'TEREA TEAK',
 	sum(case when engname = 'TEREA YUGEN' then  a.Pack_qty end ) 'TEREA YUGEN'	
-into cx.agg_TEREA_Sourcing2
+into cx.agg_LPoint_TEREA_Sourcing
 from TEREA_Purchasers t
 	join cx.fct_K7_Monthly a on t.id = a.id 	-- 구매자
+		-- 테리어 구매자가 이전 3개월 동안 무엇을 구매했는지
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 						 AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
 	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  cigatype != 'CSV' 
@@ -269,9 +252,9 @@ group by t.YYYYMM, t.id
 ;
 
 
-
+-- 월별 신규 테리어 유입 대상자 추출 
 select YYYYMM, count(*) 
-from cx.agg_TEREA_Sourcing2
+from cx.agg_LPoint_TEREA_Sourcing
 group by YYYYMM;
 
 -- 엑셀 시트 데이터 반영 작업
@@ -282,10 +265,10 @@ select
 	count(distinct case when t.cigatype ='CC' then t.id end ) 'CC',
 	count(distinct case when t.cigatype ='HnB' then t.id end ) 'HnB',
 	count(distinct case when t.cigatype ='Mixed' then t.id end ) 'Mixed',
-	count(distinct case when New_FLAVORSEG ='Fresh' then t.id end ) 'Fresh',
-	count(distinct case when New_FLAVORSEG ='New Taste' then t.id end ) 'New Taste',
-	count(distinct case when New_FLAVORSEG ='Regular' then t.id end ) 'Regular'
-from  cx.agg_TEREA_Sourcing t
+	count(distinct case when FLAVORSEG_type3 ='Fresh' then t.id end ) 'Fresh',
+	count(distinct case when FLAVORSEG_type3 ='New Taste' then t.id end ) 'New Taste',
+	count(distinct case when FLAVORSEG_type3 ='Regular' then t.id end ) 'Regular'
+from  cx.agg_LPoint_TEREA_Sourcing t
 	join cx.fct_K7_Monthly a on t.id = a.id 
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
@@ -308,7 +291,7 @@ select yyyymm, count(*) total_Purchaser_cnt,
 	count(case when age = '60대' then 1 end) '60',
 	count(case when age = '70대' then 1 end) '70',
 	count(case when age = '미상' then 1 end) 'Unknown'
-from cx.agg_TEREA_Sourcing  
+from cx.agg_LPoint_TEREA_Sourcing  
 group by yyyymm
 order by yyyymm;
 
@@ -375,7 +358,7 @@ SELECT YYYYMM,
     SUM([TEREA SUN PEARL]) AS "TEREA SUN PEARL",
     SUM([TEREA TEAK]) AS "TEREA TEAK",
     SUM([TEREA YUGEN]) AS "TEREA YUGEN"
-FROM cx.agg_TEREA_Sourcing
+FROM cx.agg_LPoint_TEREA_Sourcing
 GROUP BY YYYYMM
 ORDER BY YYYYMM
 ;
@@ -386,7 +369,7 @@ ORDER BY YYYYMM
 select *
 from (
 	select yyyymm, cigatype , count(id) ee
-	from cx.agg_TEREA_Sourcing
+	from cx.agg_LPoint_TEREA_Sourcing
 	group by yyyymm, cigatype 
 ) a
 pivot 
@@ -398,64 +381,10 @@ select
 	count(case when flavor like '%Fresh%' then id end) [Fresh],
 	count(case when flavor like '%New Taste%' then id end) [New Taste],
 	count(case when flavor like '%Regular%' then id end) [Regular]
-from cx.agg_TEREA_Sourcing
+from cx.agg_LPoint_TEREA_Sourcing
 group by YYYYMM
 order by YYYYMM
 ;
-
-
-
-SELECT
-    p.yyyymm,
-    p.[CC],
-    p.[HnB],
-    p.[Mixed],
-    f.[Fresh],
-    f.[New Taste],
-    f.[Regular]
-FROM
-    (
-        SELECT
-            yyyymm,
-            [CC],
-            [HnB],
-            [Mixed]
-        FROM
-            (
-                SELECT
-                    yyyymm,
-                    cigatype,
-                    COUNT(id) AS ee
-                FROM
-                    cx.agg_TEREA_Sourcing
-                GROUP BY
-                    yyyymm,
-                    cigatype
-            ) AS a
-        PIVOT (
-            SUM(ee) FOR cigatype IN ([CC], [HnB], [Mixed])
-        ) AS pvt
-    ) AS p
-JOIN
-    (
-        SELECT
-            YYYYMM,
-            COUNT(CASE WHEN flavor LIKE '%Fresh%' THEN id END) AS [Fresh],
-            COUNT(CASE WHEN flavor LIKE '%New Taste%' THEN id END) AS [New Taste],
-            COUNT(CASE WHEN flavor LIKE '%Regular%' THEN id END) AS [Regular]
-        FROM
-            cx.agg_TEREA_Sourcing
-        GROUP BY
-            YYYYMM
-    ) AS f
-ON
-    p.yyyymm = f.yyyymm
-ORDER BY
-    p.yyyymm;
-
-
-
-
 
 
 
@@ -469,7 +398,7 @@ select
 	max(case when b.cigatype='HnB' and b.company = 'PMK' then 1 else 0 end) IQOS_Purchased,
 	max(case when b.cigatype='CC' then 1 else 0 end) CC_Purchased,
 	max(case when b.cigatype='HnB' and b.company != 'PMK' then 1 else 0 end) CompHnB_Purchased
-from  cx.agg_TEREA_Sourcing t
+from  cx.agg_LPoint_TEREA_Sourcing t
 	join cx.fct_K7_Monthly a on t.id = a.id 
 		and a.YYYYMM = t.YYYYMM
 	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
@@ -498,7 +427,7 @@ select
 	max(case when b.cigatype='HnB' and b.company = 'PMK' then 1 else 0 end) IQOS_Purchased,
 	max(case when b.cigatype='CC' then 1 else 0 end) CC_Purchased,
 	max(case when b.cigatype='HnB' and b.company != 'PMK' then 1 else 0 end) CompHnB_Purchased
-from  cx.agg_TEREA_Sourcing t
+from  cx.agg_LPoint_TEREA_Sourcing t
 	join cx.fct_K7_Monthly a on t.id = a.id 
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
@@ -510,19 +439,38 @@ group BY
 
 
 -- TEREA_flaXtar_ from 202211
+with temp as (
 select  
 	t.YYYYMM,
-	concat(New_FLAVORSEG,' X ', New_TARSEGMENTAT) flavorXtar,
+	concat(FLAVORSEG_type3,' X ', New_TARSEGMENTAT) flavorXtar,
 	count(distinct case when b.cigatype ='CC' then t.id end) CC,
 	count(distinct case when b.cigatype ='HnB' then t.id end) HnB
-from cx.agg_TEREA_Sourcing t
+from cx.agg_LPoint_TEREA_Sourcing t
 	join cx.fct_K7_Monthly a on t.id = a.id 
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
 	join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND b.cigatype != 'CSV'  
 where 1=1 -- Target Date
-group BY t.YYYYMM, concat(New_FLAVORSEG,' X ', New_TARSEGMENTAT)  
-order by t.YYYYMM, concat(New_FLAVORSEG,' X ', New_TARSEGMENTAT)
+group BY t.YYYYMM, concat(FLAVORSEG_type3,' X ', New_TARSEGMENTAT)  
+--order by t.YYYYMM, concat(FLAVORSEG_type3,' X ', New_TARSEGMENTAT)
+)
+
 ;
 
 
+
+-- 1갑 이상 산 사람들만 추출 
+with temp as(
+select t.YYYYMM, t.id, count(distinct b.engname) SKU, sum(a.Pack_qty) pack_qty
+from  cx.agg_LPoint_TEREA_Sourcing t
+	join cx.fct_K7_Monthly a on t.id = a.id and a.YYYYMM = t.YYYYMM
+	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
+where 1=1 -- Target Date
+group BY 	    	
+	t.YYYYMM, t.id
+having sum(a.Pack_qty) > 1
+)
+select YYYYMM, count(*)
+from temp
+group by YYYYMM
+;

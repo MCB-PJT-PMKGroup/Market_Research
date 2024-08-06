@@ -282,7 +282,7 @@ select a.PROD_ID,a.ENGNAME,a.ProductDescription,a.ProductFamilyCode,a.CIGADEVICE
 		when b.FLAVORSEG like 'Fresh to New Taste'	then 'Fresh to New Taste'
     	ELSE b.FLAVORSEG 
     end as FLAVORSEG_type6
-from cx.product_master_tmp2 a
+from cx.product_master_tmp a
 	left join cx.product_master b on a.PROD_ID  = b.PROD_ID 
 where b.PROD_ID is null;
 
@@ -306,28 +306,43 @@ group by YYYYMM;
 having count(*)>1;
 
 
-
+-- 직전 3개월 구매이력 있는 유저 뽑기
+with temp as (
+	select YYYYMM, id, count(*) ee
+	from cx.fct_K7_Monthly a
+		join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+	where exists (select 1 	-- (1) 3개월 구매이력 있는 ID만 추출
+					from cx.fct_K7_Monthly x
+						join cx.product_master y  on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
+					where  a.id = x.id
+					and x.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, a.YYYYMM+'01'), 112)
+					 				 AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, a.YYYYMM+'01'), 112)
+					group by YYYYMM, id
+					having count(distinct y.engname) < 11 and sum( x.Pack_qty) < 61.0  
+					)
+	and a.YYYYMM >= '202211'
+	--and b.ProductSubFamilyCode = 'TEREA'
+	--and not exists (
+	--	       -- (2) 해당 월 이전에 같은 제품을 구매한 사람 제외
+	--	       select 1
+	--	       from cx.fct_K7_Monthly x
+	--				join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV' 
+	--	       where x.id = a.id
+	--           and x.YYYYMM < a.YYYYMM
+	--           and y.ProductSubFamilyCode = b.ProductSubFamilyCode 		-- 중요한 조건
+	--)
+	group by YYYYMM , id
+	--having count(distinct b.engname) < 11 and sum( a.Pack_qty) < 61.0
+)
 select YYYYMM, count(*) ee
-from cx.fct_K7_Monthly a
-	join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-where exists (select 1 	-- (1) 3개월 구매이력 있는 ID만 추출
-				from cx.fct_K7_Monthly x
-					join cx.product_master y  on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
-				where  a.id = x.id
-				and x.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, a.YYYYMM+'01'), 112)
-				 				 AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, a.YYYYMM+'01'), 112)
-				group by YYYYMM, id
-				having count(distinct y.engname) < 11 and sum( x.Pack_qty) < 61.0  
-				)
-and a.YYYYMM >= '202211'
-and b.ProductSubFamilyCode = 'TEREA'
---and not exists (
---	       -- (2) 해당 월 이전에 같은 제품을 구매한 사람 제외
---	       select 1
---	       from cx.fct_K7_Monthly x
---				join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV' 
---	       where x.id = a.id
---           and x.YYYYMM < a.YYYYMM
---           and y.ProductSubFamilyCode = b.ProductSubFamilyCode 		-- 중요한 조건
---)
+from temp
 group by YYYYMM
+;
+
+
+
+-- 비어있는 data 찾기
+select * 
+from cu.cu_master_tmp a
+	left join  cu.dim_product_master b on a.PROD_ID = b.PROD_ID 
+where b.prod_id is null;

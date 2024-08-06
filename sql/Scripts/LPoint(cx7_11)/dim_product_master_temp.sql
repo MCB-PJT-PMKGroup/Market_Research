@@ -66,6 +66,13 @@ CREATE TABLE BPDA.cx.product_master_temp (
 	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
 	 ON [PRIMARY ] ;
 
+-- 비어있는 data 찾기
+select * 
+from cu.cu_master_tmp a
+	left join  cu.dim_product_master b on a.PROD_ID = b.PROD_ID 
+where b.prod_id is null;
+
+
 select a.YYYYMM, 
 		b.ENGNAME, 
 		b.CIGATYPE , 
