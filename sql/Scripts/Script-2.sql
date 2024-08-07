@@ -73,14 +73,27 @@ having count(*) >1
 order by  count(*) DESC 
 ;
 
-
-select count(distinct id) --36,307
-from  cx.agg_MLB_LTS_Switch2
-
-
-select id , count(*) ttt
-from  cx.agg_PLT_CC_Switch3
-group by id 
-having count(*) >1
-order by  count(*) DESC 
+select * 
+FROM 
+	cx.fct_K7_Monthly a
+    	join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV'
+where 1=1
+   	and left(a.YYYYMM, 4) in ('2022', '2023')
+GROUP BY 
+	b.FLAVORSEG_type3, b.cigatype, left(a.YYYYMM, 4)
 ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

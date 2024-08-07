@@ -27,11 +27,71 @@ CREATE TABLE BPDA.cu.dim_product_master (
 	CONSTRAINT PK_dim_product_master PRIMARY KEY (PROD_ID)
 );
 
--- 비어있는 data 찾기
-select * 
+
+-- 비어있는 data 찾고 SKU 채우기
+insert into cu.dim_product_master 
+select a.PROD_ID,a.ENGNAME, a.ProductDescription,a.ProductFamilyCode,a.CIGADEVICE,a.CIGATYPE,a.FLAVORSEG,a.LENGTHSEG,a.MENTHOLINDI,a.DELISTYN,a.THICKSEG,a.TARSEGMENTAT,a.CAPSULEYN,a.TARINFO,a.Company,a.SAL_QNT,a.ProductSubFamilyCode,a.Productcode,a.MKTD_BRDCODE,a.SMARTSRCCode,
+		CASE 
+	    WHEN b.FLAVORSEG like 'FS1:%' THEN 'Regular'
+	    WHEN b.FLAVORSEG like 'FS2:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS3:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS4:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS5:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS7:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS8:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS9:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS10:%' THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS11:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS12:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS13:%' THEN 'Fresh'
+	    WHEN b.FLAVORSEG like 'FS14:%' THEN 'New Taste'
+	    when b.FLAVORSEG like 'Aftercut (New%' then 'New Taste'
+	    when b.FLAVORSEG like 'Regular Fresh' then 'Fresh' 
+	    when b.FLAVORSEG like 'Regular to Fresh' then 'Fresh'
+		when b.FLAVORSEG like 'Regular to New Taste' then 'New Taste'
+		when b.FLAVORSEG like 'Fresh to New Taste' then 'New Taste'
+    	ELSE b.FLAVORSEG 
+    end,
+	CASE 
+    	when b.TARSEGMENTAT like 'TS1:%' then 'FF'
+    	when b.TARSEGMENTAT like 'TS2:%' then 'LTS'
+    	when b.TARSEGMENTAT like 'TS3:%' then 'ULT'
+    	when b.TARSEGMENTAT like 'TS4:%' then '1MG'
+    	when b.TARSEGMENTAT like 'TS5:%' then 'Below 1MG'
+    	else b.TARSEGMENTAT 
+    END,
+	CASE 
+	    WHEN b.FLAVORSEG like 'FS1:%' 				THEN 'Regular'
+	    WHEN b.FLAVORSEG like 'FS2:%' 				THEN 'Regular to Fresh'
+	    WHEN b.FLAVORSEG like 'FS3:%' 				THEN 'Regular to Fresh'
+	    WHEN b.FLAVORSEG like 'FS4:%' 				THEN 'Regular to New Taste'
+	    WHEN b.FLAVORSEG like 'FS5:%' 				THEN 'Fresh to Fresh'
+	    WHEN b.FLAVORSEG like 'FS7:%' 				THEN 'New Taste'
+	    WHEN b.FLAVORSEG like 'FS8:%' 				THEN 'Fresh to New Taste'
+	    WHEN b.FLAVORSEG like 'FS9:%' 				THEN 'Fresh to New Taste'
+	    WHEN b.FLAVORSEG like 'FS10:%' 				THEN 'Regular to New Taste'
+	    WHEN b.FLAVORSEG like 'FS11:%' 				THEN 'Fresh to Fresh'
+	    WHEN b.FLAVORSEG like 'FS12:%' 				THEN 'Regular to Fresh'
+	    WHEN b.FLAVORSEG like 'FS13:%' 				THEN 'Regular Fresh'
+	    WHEN b.FLAVORSEG like 'FS14:%' 				THEN 'New Taste'
+	    when b.FLAVORSEG like 'Aftercut (New%' 		then 'New Taste'
+	    when b.FLAVORSEG like 'Regular Fresh' 		then 'Regular Fresh' 
+	    when b.FLAVORSEG like 'Regular to Fresh' 	then 'Regular to Fresh'
+		when b.FLAVORSEG like 'Regular to New Taste' then 'Regular to New Taste'
+		when b.FLAVORSEG like 'Fresh to New Taste'	then 'Fresh to New Taste'
+    	ELSE b.FLAVORSEG 
+    end as FLAVORSEG_type6
 from cu.cu_master_tmp a
 	left join  cu.dim_product_master b on a.PROD_ID = b.PROD_ID 
 where b.prod_id is null;
+
+
+-- Pack 수 업데이트 
+update a 
+set a.PACK_QTY  = a.SALE_QTY  * b.SAL_QNT 
+from cu.Fct_BGFR_PMI_Monthly a
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID 
+where PACK_QTY =0;
 
 
 -- Taste Column : FLAVORSEG

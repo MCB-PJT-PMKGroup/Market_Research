@@ -257,8 +257,14 @@ select YYYYMM, count(*)
 from cx.agg_LPoint_TEREA_Sourcing
 group by YYYYMM;
 
+-- Pack 수 업데이트
+select *
+from cx.fct_K7_Monthly  a
+	join cx.product_master b on a.product_code = b.PROD_ID
+where PACK_QTY =0;
+
 -- 엑셀 시트 데이터 반영 작업
--- Cigatype, Taste Total (Taste는 구매자 수가 다를 수 있음. 한 사람이 여러 Taste를 구매)
+-- Cigatype, Taste Total (Taste는 구매자 수가 다를 수 있음. 한 사람이 여러 Taste를 구매), CC 타입 Taste Total 구매자수 
 select 
 	t.YYYYMM,
 	count(distinct t.id) total_Purchaser_Cnt,
@@ -267,7 +273,13 @@ select
 	count(distinct case when t.cigatype ='Mixed' then t.id end ) 'Mixed',
 	count(distinct case when FLAVORSEG_type3 ='Fresh' then t.id end ) 'Fresh',
 	count(distinct case when FLAVORSEG_type3 ='New Taste' then t.id end ) 'New Taste',
-	count(distinct case when FLAVORSEG_type3 ='Regular' then t.id end ) 'Regular'
+	count(distinct case when FLAVORSEG_type3 ='Regular' then t.id end ) 'Regular',
+	count(distinct case when b.cigatype = 'CC' and FLAVORSEG_type3 ='Fresh' then t.id end ) 'CC Fresh',
+	count(distinct case when b.cigatype = 'CC' and FLAVORSEG_type3 ='New Taste' then t.id end ) 'CC New Taste',
+	count(distinct case when b.cigatype = 'CC' and FLAVORSEG_type3 ='Regular' then t.id end ) 'CC Regular',
+	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='Fresh' then t.id end ) 'HnB Fresh',
+	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='New Taste' then t.id end ) 'HnB New Taste',
+	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='Regular' then t.id end ) 'HnB Regular'
 from  cx.agg_LPoint_TEREA_Sourcing t
 	join cx.fct_K7_Monthly a on t.id = a.id 
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
@@ -439,7 +451,6 @@ group BY
 
 
 -- TEREA_flaXtar_ from 202211
-with temp as (
 select  
 	t.YYYYMM,
 	concat(FLAVORSEG_type3,' X ', New_TARSEGMENTAT) flavorXtar,
@@ -450,11 +461,9 @@ from cx.agg_LPoint_TEREA_Sourcing t
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
 	join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND b.cigatype != 'CSV'  
-where 1=1 -- Target Date
+where YYYYMM == '202211' -- Target Date
 group BY t.YYYYMM, concat(FLAVORSEG_type3,' X ', New_TARSEGMENTAT)  
 --order by t.YYYYMM, concat(FLAVORSEG_type3,' X ', New_TARSEGMENTAT)
-)
-
 ;
 
 

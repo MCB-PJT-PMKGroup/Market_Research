@@ -203,3 +203,11 @@ select a.PROD_ID,a.ENGNAME,a.ProductDescription,a.ProductFamilyCode,a.CIGADEVICE
 from cx.product_master_tmp2 a
 	left join cx.product_master b on a.PROD_ID  = b.PROD_ID 
 where b.PROD_ID is null;
+
+
+-- Pack 수 업데이트 
+update a 
+set a.Pack_qty  = a.buy_ct * cast(b.SAL_QNT as decimal)
+from cx.fct_K7_Monthly  a
+	join cx.product_master_tmp b on a.product_code = b.PROD_ID
+where PACK_QTY is null;

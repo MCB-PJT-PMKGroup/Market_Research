@@ -26,10 +26,11 @@
 			"custom-properties": {
 				"resultset.confirm.beforeSave": "false",
 				"resultset.datetime.editor": "false",
-				"resultset.maxrows": "1000"
+				"resultset.maxrows": "500"
 			}
 		}
 	},
+	"virtual-models": {"microsoft-190968d5824-625d6d4bdd2d99e0":{"BPDA":{"cu":{":dim_Regional_area":{"constraints":{"VIRTUAL_PK":{"type":"vpk","attributes":["sido_cd","gr_cd"]}}}}}}},
 	"connection-types": {
 		"dev": {
 			"name": "Development",
@@ -39,7 +40,7 @@
 			"confirm-execute": false,
 			"confirm-data-change": false,
 			"smart-commit": false,
-			"smart-commit-recover": false,
+			"smart-commit-recover": true,
 			"auto-close-transactions": true,
 			"close-transactions-period": 1800,
 			"auto-close-connections": true,

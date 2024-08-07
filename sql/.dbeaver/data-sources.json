@@ -30,6 +30,7 @@
 			}
 		}
 	},
+	"virtual-models": {"microsoft-190968d5824-625d6d4bdd2d99e0":{"BPDA":{"cu":{":dim_Regional_area":{"constraints":{"VIRTUAL_PK":{"type":"vpk","attributes":["sido_cd","gr_cd"]}}}}}}},
 	"connection-types": {
 		"dev": {
 			"name": "Development",
