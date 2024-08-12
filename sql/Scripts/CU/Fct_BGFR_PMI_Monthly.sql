@@ -3,19 +3,18 @@
 -- Drop table
 
 -- DROP TABLE BPDA.cu.Fct_BGFR_PMI_Monthly;
-
 CREATE TABLE BPDA.cu.Fct_BGFR_PMI_Monthly (
-	YM_CD varchar(20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	YYYYMM varchar(20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	SIDO_CD tinyint NOT NULL,
-	CUST_ID nvarchar(100) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	GENDER_CD tinyint NULL,
-	AGE_CD tinyint NULL,
+	id nvarchar(100) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	GENDER tinyint NULL,
+	AGE tinyint NULL,
 	ITEM_CD varchar(50) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	SALE_QTY float NULL,
 	PACK_QTY float NULL,
 	seq int IDENTITY(1,1) NOT NULL,
 	SIDO_NM varchar(50) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	CONSTRAINT Fct_BGFR_PMI_Monthly_PK PRIMARY KEY (CUST_ID,ITEM_CD,YM_CD,SIDO_NM)
+	CONSTRAINT Fct_BGFR_PMI_Monthly_PK PRIMARY KEY (id,ITEM_CD,YYYYMM,SIDO_NM)
 );
 
 alter table cu.Fct_BGFR_PMI_Monthly  add constraint PK_fct_BGFR_PMI_Monthly primary key (ITEM_CD, CUST_ID, YM_CD, SIDO_CD );

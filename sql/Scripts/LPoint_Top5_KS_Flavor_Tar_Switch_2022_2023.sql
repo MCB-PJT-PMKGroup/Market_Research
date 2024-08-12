@@ -6,7 +6,7 @@
 
 -- 전체 CC KS 대상 탐색
 select 'KS',CIGATYPE , ProductFamilyCode ,FLAVORSEG_type6, count(*) "KS SEG"
-FROM cx.product_master_temp
+FROM  cx.product_master
 where THICKSEG = 'STD'
 --and ProductFamilyCode in ('ESSE', 'DUNHILL', 'MEVIUS', 'MLB' , 'RAISON')  -- Top5 대상
 group by CIGATYPE , ProductFamilyCode, FLAVORSEG_type6;
@@ -19,7 +19,7 @@ select
 	sum(a.buy_ct * a.pack_qty) as Total_Pack_Cnt
 FROM 
 	cx.fct_K7_Monthly a
-    	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)
+    	join  cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV'
     	AND b.THICKSEG = 'STD'and ProductFamilyCode in ('ESSE', 'DUNHILL', 'MEVIUS', 'MLB' , 'RAISON')  and b.FLAVORSEG_type6 in ('Regular', 'Fresh to New Taste', 'New Taste', 'Regular to New Taste') 
 where 1=1
    	and left(a.YYYYMM, 4) in ('2022', '2023')
@@ -49,7 +49,7 @@ with temp as (
 		sum(case when left(a.YYYYMM, 4) = '2023' then a.buy_ct * a.pack_qty else 0 end) as [In]
 	FROM 
 	    cx.fct_K7_Monthly a
-	     	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id) 
+	     	join  cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV'
 	    	and b.THICKSEG ='STD' and b.FLAVORSEG_type6 = 'Fresh to New Taste' and b.ProductFamilyCode = 'RAISON'
 	where 1=1
 	   	and left(a.YYYYMM, 4) in ('2022', '2023')
@@ -58,7 +58,7 @@ with temp as (
 			SELECT 
 				x.id
 			FROM cx.fct_K7_Monthly x
-				join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype = 'CC' AND 4 < LEN(x.id) 
+				join  cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype = 'CC' 
 					and y.THICKSEG  = b.THICKSEG and y.FLAVORSEG_type6 = b.FLAVORSEG_type6 and y.ProductFamilyCode = b.ProductFamilyCode
 			where 1=1
 			   	and left(x.YYYYMM, 4) in ('2022', '2023')
@@ -74,7 +74,7 @@ with temp as (
 	GROUP BY 
 	       a.id, b.ProductFamilyCode,   b.THICKSEG,     b.FLAVORSEG_type6
 )
-insert into cx.agg_CC_SSL_Switch_2022_2023
+insert into cx.agg_CC_KS_SSL_Switch_2022_2023
 select 
 	id,
 	THICKSEG,
@@ -90,7 +90,7 @@ where     -- Out : 2022년도에는 구매했지만 2023년도에는 해당 제�
 		-- 2023년에는 다른 제품을 구매한 사람
 	    SELECT 1
 	    FROM cx.fct_K7_Monthly x
-	    	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' AND y.cigatype != 'CSV' AND 4 < LEN(x.id)
+	    	join  cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' AND y.cigatype != 'CSV' 
 	    where a.id = x.id and left(x.YYYYMM, 4) = '2023'
 	    and y.ProductFamilyCode != a.ProductFamilyCode
 		and (y.THICKSEG != a.THICKSEG or y.FLAVORSEG_type6 != a.FLAVORSEG_type6 or y.THICKSEG is null) 	
@@ -104,7 +104,7 @@ where     -- Out : 2022년도에는 구매했지만 2023년도에는 해당 제�
     	-- 2022년에 다른 제품을 구매한 사람
 	    SELECT 1
 	    FROM cx.fct_K7_Monthly x
-	    	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' AND y.cigatype != 'CSV' AND 4 < LEN(x.id)
+	    	join  cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' AND y.cigatype != 'CSV' 
 	    where a.id = x.id and left(x.YYYYMM, 4) = '2022'
 	    and y.ProductFamilyCode != a.ProductFamilyCode
 	    and (y.THICKSEG != a.THICKSEG or y.FLAVORSEG_type6 != a.FLAVORSEG_type6 or y.THICKSEG is null) 	
@@ -130,9 +130,9 @@ select
 		when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then a.buy_ct * a.pack_qty 
 	end) as In_quantity
 from 
-	cx.agg_CC_SSL_Switch_2022_2023 t
+	cx.agg_CC_KS_SSL_Switch_2022_2023 t
 		join cx.fct_K7_Monthly a on a.id = t.id AND 4 < LEN(a.id) and left(a.YYYYMM, 4) in ('2022', '2023') 
-		join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' AND b.cigatype != 'CSV'
+		join  cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' AND b.cigatype != 'CSV'
 			and b.ProductFamilyCode != t.ProductFamilyCode
 			and (b.THICKSEG != t.THICKSEG or b.FLAVORSEG_type6 != t.FLAVORSEG_type6 or b.THICKSEG is null) 		
 WHERE t.THICKSEG ='STD' and t.FLAVORSEG_type6 = 'Fresh to New Taste' and  t.ProductFamilyCode = 'DUNHILL' 
@@ -155,9 +155,9 @@ select
 	'',
 	sum(case when left(a.YYYYMM, 4) = '2023' and t.[Out] > 0 then a.buy_ct * a.Pack_qty else 0 end ) as Out_Quantity,
 	sum(case when left(a.YYYYMM, 4) = '2022' and t.[In] > 0 then a.buy_ct * a.Pack_qty else 0 end ) as In_Quantity
-from cx.agg_CC_SSL_Switch_2022_2023  t
+from cx.agg_CC_KS_SSL_Switch_2022_2023  t
 	join cx.fct_K7_Monthly a on t.id = a.id and 4 < len(a.id) and left(a.YYYYMM, 4) in ('2022', '2023')   
-	join cx.product_master_temp b on a.Product_code = b.prod_id and b.CIGADEVICE ='CIGARETTES' and b.CIGATYPE != 'CSV' 
+	join  cx.product_master b on a.Product_code = b.prod_id and b.CIGADEVICE ='CIGARETTES' and b.CIGATYPE != 'CSV' 
 		and b.ProductFamilyCode != t.ProductFamilyCode
 		and (b.THICKSEG != t.THICKSEG or b.FLAVORSEG_type6 != t.FLAVORSEG_type6 or b.THICKSEG is null) 	
 WHERE  t.THICKSEG ='STD' and t.FLAVORSEG_type6 = 'Fresh to New Taste' and  t.ProductFamilyCode = 'DUNHILL' 
@@ -173,7 +173,7 @@ select
 	sum(a.buy_ct * a.pack_qty) as Total_Pack_Cnt
 FROM 
 	cx.fct_K7_Monthly a
-    	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)
+    	join  cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)
     	AND b.THICKSEG = 'STD' and ProductFamilyCode in ('ESSE', 'DUNHILL', 'MEVIUS', 'MLB' , 'RAISON')  --and b.FLAVORSEG_type6 = 'Fresh to New Taste' 
 where 1=1
    	and left(a.YYYYMM, 4) in ('2022', '2023')
@@ -191,9 +191,9 @@ select
 	sum(case when t.[Out] > 0 then a.buy_ct * a.pack_qty end ) as Out_Quantity,
 	sum(case when t.[In] > 0 then a.buy_ct * a.pack_qty end ) as In_Quantity
 from 
-	cx.agg_CC_SSL_Switch_2022_2023 t
+	cx.agg_CC_KS_SSL_Switch_2022_2023 t
 		join cx.fct_K7_Monthly a on a.id = t.id AND 4 < LEN(a.id) and left(a.YYYYMM, 4) in ('2022', '2023') 
-		join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' AND b.cigatype != 'CSV'
+		join  cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' AND b.cigatype != 'CSV'
 			and b.ProductFamilyCode = t.ProductFamilyCode
 			and b.THICKSEG = t.THICKSEG and b.FLAVORSEG_type6 = t.FLAVORSEG_type6  	
 where t.THICKSEG ='STD' and t.FLAVORSEG_type6 = 'Fresh to New Taste' --and t.ProductFamilyCode ='DUNHILL' 
