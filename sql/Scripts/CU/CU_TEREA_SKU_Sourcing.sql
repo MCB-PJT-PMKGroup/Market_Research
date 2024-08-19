@@ -1,23 +1,7 @@
 /* 2024.08.12 작업 시작
  
 1. TEREA Sourcing by SKU 17 건 	rows
-TEREA AMBER 			18,154
-TEREA ARBOR PEARL		4,994
-TEREA BLACK GREEN		12,583
-TEREA BLACK PURPLE		30,844
-TEREA BLACK YELLOW		10,848
-TEREA BLUE				23,742
-TEREA GREEN				22,150
-TEREA GREEN ZING		8,703
-TEREA OASIS PEARL		23,891
-TEREA PURPLE WAVE		32,755
-TEREA RUSSET			6,551
-TEREA SILVER			19,759
-TEREA STARLING PEARL	1,612
-TEREA SUMMER WAVE		18,921
-TEREA SUN PEARL			14,500
-TEREA TEAK				4,741
-TEREA YUGEN				9,962
+
 */
 
 select distinct engname from cu.dim_product_master  
@@ -57,7 +41,9 @@ and
        where
            x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
            				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
-           and a.id = x.id
+       and a.id = x.id
+       group by x.YYYYMM, x.id
+	   having count(distinct y.engname) < 11 and sum(x.Pack_qty) < 61.0 -- (3) 구매 SKU 11종 미만 & 팩 수량 61개 미만
    )
 group by t.YYYYMM, t.id 
 having
@@ -139,23 +125,23 @@ where id ='00c32f336e2adf6f183ff4e5fc60d62f212c8528fde3fa57a8635ffec2eca7e3';
 
 
 
---TEREA AMBER 				18,154
---TEREA ARBOR PEARL			4,994
---TEREA BLACK GREEN			12,583
---TEREA BLACK PURPLE		30,844
---TEREA BLACK YELLOW		10,848
---TEREA BLUE				23,742
---TEREA GREEN				22,150
---TEREA GREEN ZING			8,703
---TEREA OASIS PEARL			23,891
---TEREA PURPLE WAVE			32,755
---TEREA RUSSET				6,551
---TEREA SILVER				19,759
---TEREA STARLING PEARL		1,612
---TEREA SUMMER WAVE			18,921
---TEREA SUN PEARL			14,500
---TEREA TEAK				4,741
---TEREA YUGEN				9,962
+--TEREA AMBER 				18,135
+--TEREA ARBOR PEARL			4,988
+--TEREA BLACK GREEN			12,573
+--TEREA BLACK PURPLE		30,830
+--TEREA BLACK YELLOW		10,845
+--TEREA BLUE				23,727
+--TEREA GREEN				22,134
+--TEREA GREEN ZING			8,699
+--TEREA OASIS PEARL			23,882
+--TEREA PURPLE WAVE			32,738
+--TEREA RUSSET				6,547
+--TEREA SILVER				19,740
+--TEREA STARLING PEARL		1,611
+--TEREA SUMMER WAVE			18,911
+--TEREA SUN PEARL			14,494
+--TEREA TEAK				4,737
+--TEREA YUGEN				9,956
 
 
 -- CU sourcing_M1 모수 테이블
@@ -166,8 +152,8 @@ from (
    from
        cu.Fct_BGFR_PMI_Monthly a
        join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-   where 1=1 
-   and b.ProductSubFamilyCode = 'TEREA'  and engname ='TEREA RUSSET'
+   where 1=1
+   and b.ProductSubFamilyCode = 'TEREA'  and engname ='TEREA YUGEN'
    group by YYYYMM , a.id
 ) as t
 where rn = 1
@@ -189,7 +175,9 @@ TEREA_Purchasers as (
 	       where
 	           x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
 	           				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
-	           and a.id = x.id
+	       and a.id = x.id
+	       group by x.YYYYMM, x.id
+		   having count(distinct y.engname) < 11 and sum(x.Pack_qty) < 61.0 -- (3) 구매 SKU 11종 미만 & 팩 수량 61개 미만
 	   )
 	group by t.YYYYMM, t.id 
 	having
@@ -308,7 +296,8 @@ group by t.YYYYMM, t.id, t.SIDO_NM, t.eng_name
 -- 월별 신규 테리어 유입 대상자 추출 
 select YYYYMM, count(*) 
 from cu.agg_CU_TEREA_SKU_Sourcing
-group by YYYYMM;
+group by YYYYMM
+order by YYYYMM;
 
 select engname, min(YYYYMM), count(*) 
 from cu.agg_CU_TEREA_SKU_Sourcing
@@ -445,6 +434,8 @@ GROUP BY t.engname, t.YYYYMM
 ORDER BY t.engname, t.YYYYMM
 ;
 
+select count(*)
+from cu.agg_CU_TEREA_SKU_Sourcing actss ;
 
 
 -- Pivot 이 필요한 대상들...

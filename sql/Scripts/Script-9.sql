@@ -121,7 +121,7 @@ with temp as (
            group by x.id, x.YYYYMM 
            having count(distinct x.product_code) < 11 and sum( Pack_qty) < 61.0  and sum(Pack_qty) > 0
        )
-       and a.YYYYMM = '202403' -- (2) 해당 월 (202403)
+       and a.YYYYMM = '202211' -- (2) 해당 월 (202403)
    group by
        a.id, a.gender, a.YYYYMM
    having
@@ -137,7 +137,7 @@ select distinct
 from
    temp a
    join cx.fct_K7_Monthly c on a.id = c.id and a.YYYYMM = c.YYYYMM
-   join cx.product_master_temp b on c.product_code = b.PROD_ID
+   join cx.product_master b on c.product_code = b.PROD_ID
        and b.CIGADEVICE = 'CIGARETTES'
        and b.cigatype != 'CSV'
        and len(a.id) > 4
@@ -147,7 +147,7 @@ where
        -- (4) 해당 월 이전에 같은 제품을 구매한 사람 제외
        select 1
        from cx.fct_K7_Monthly x
-			join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV' and len(x.id) > 4
+			join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV' and len(x.id) > 4
        where x.id = a.id
            and x.YYYYMM < a.YYYYMM
            and y.engname = b.engname
@@ -226,6 +226,8 @@ having count(*) >1
 	and b.ProductSubFamilyCode = 'TEREA'	
 	and id ='4FE5AF12A7CF34E59E589A98247AD4D14655ABA6EDC219BF3C8F99A73C4927B1'
    group by a.id
+   
+   
 
 --202301	0000DB160A1F35B1EF63C914DCF1B8206F73F97BD0CA082BE26A62373853D7B4
 with temp as ( 
@@ -242,7 +244,7 @@ select t.YYYYMM, t.id
 from temp t
 	join cx.fct_K7_Monthly a on a.id = t.id  and  a.YYYYMM = t.YYYYMM
 	join cx.product_master b on a.product_code = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-where t.YYYYMM = '202305'
+where t.YYYYMM = '202211'
 and
    exists (
        -- (2) 직전 3개월 동안 구매이력이 있는지 확인

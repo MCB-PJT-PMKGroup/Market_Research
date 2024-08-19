@@ -55,7 +55,9 @@ and
        where
            x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
            				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
-           and a.id = x.id
+       and a.id = x.id
+      group by x.YYYYMM, x.id
+	   having count(distinct y.engname) < 11 and sum(x.Pack_qty) < 61.0 -- (3) 구매 SKU 11종 미만 & 팩 수량 61개 미만
    )
 group by t.YYYYMM, t.id 
 having
@@ -93,23 +95,24 @@ order by de_dt;
 -- 데이터 검증 끝
 
 
---TEREA AMBER 				7,465
---TEREA ARBOR PEARL			2,300
---TEREA BLACK GREEN			6,022
---TEREA BLACK PURPLE		14,354
---TEREA BLACK YELLOW		4,714
---TEREA BLUE				10,836
---TEREA GREEN				8,780
---TEREA GREEN ZING			3,104
---TEREA OASIS PEARL			10,875
---TEREA PURPLE WAVE			14,968
---TEREA RUSSET				2,676
---TEREA SILVER				7,426
---TEREA STARLING PEARL		761
---TEREA SUMMER WAVE			8,462
---TEREA SUN PEARL			6,398
+--TEREA AMBER 				7,450
+--TEREA ARBOR PEARL			2,298
+--TEREA BLACK GREEN			6,018
+--TEREA BLACK PURPLE		14,338
+--TEREA BLACK YELLOW		4,703
+--TEREA BLUE				10,818
+--TEREA GREEN				8,766
+--TEREA GREEN ZING			3,098
+--TEREA OASIS PEARL			10,856
+--TEREA PURPLE WAVE			14,943
+--TEREA RUSSET				2,673
+--TEREA SILVER				7,407
+--TEREA STARLING PEARL		760
+--TEREA SUMMER WAVE			8,446
+--TEREA SUN PEARL			6,388
 --TEREA TEAK				2,076
---TEREA YUGEN				4,552
+--TEREA YUGEN				4,549
+
 
 -- CU sourcing_M1 모수 테이블
 with temp as( 
@@ -141,7 +144,9 @@ TEREA_Purchasers as (
 	       where
 	           x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
 	           				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
-	           and a.id = x.id
+           and a.id = x.id
+          group by x.YYYYMM, x.id
+          having count(distinct y.engname) < 11 and sum(x.Pack_qty) < 61.0 -- (3) 구매 SKU 11종 미만 & 팩 수량 61개 미만
 	   )
 	group by t.YYYYMM, t.id 
 	having
@@ -271,6 +276,7 @@ from cx.agg_LPoint_TEREA_SKU_Sourcing
 group by id ,engname 
 having count(*) > 1;
 
+select count(*) from cx.agg_LPoint_TEREA_SKU_Sourcing ;
 
 
 
