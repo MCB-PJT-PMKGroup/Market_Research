@@ -25,7 +25,7 @@ select
 	,id
 	,buy_ct
 	,left(de_dt, 6) YYYYMM
-	,buy_ct * cast(SAL_QNT as float) Pack_qty
+	,buy_ct * cast(SAL_QNT as decimal) Pack_qty
 	,gender
 	,age
 	,rct_seq

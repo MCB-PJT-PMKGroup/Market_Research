@@ -48,7 +48,9 @@ and
        where
            x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
            				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
-           and a.id = x.id
+       and a.id = x.id
+       group by x.YYYYMM, x.id
+	   having count(distinct y.engname) < 11 and sum(x.Pack_qty) < 61.0 -- (3) 구매 SKU 11종 미만 & 팩 수량 61개 미만
    )
 group by t.YYYYMM, t.id 
 having
@@ -113,7 +115,9 @@ and  exists (
        where
            x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
            				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
-           and a.id = x.id
+       and a.id = x.id
+       group by x.YYYYMM, x.id
+	   having count(distinct y.engname) < 11 and sum(x.Pack_qty) < 61.0 -- (3) 구매 SKU 11종 미만 & 팩 수량 61개 미만
    )
 order by YYYYMM;
 --서울특별시
@@ -129,7 +133,12 @@ where id ='00c32f336e2adf6f183ff4e5fc60d62f212c8528fde3fa57a8635ffec2eca7e3';
 -- 데이터 검증 끝
 
 
+TRUNCATE table cu.agg_CU_TEREA_Taste_Sourcing;
 
+
+-- Regular 		13,426
+-- New Taste	28,826
+-- Fresh		17,225
 
 
 -- CU sourcing_M1 모수 테이블
@@ -163,14 +172,16 @@ TEREA_Purchasers as (
 	       where
 	           x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
 	           				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
-	           and a.id = x.id
+	       and a.id = x.id
+	       group by x.YYYYMM, x.id
+		   having count(distinct y.engname) < 11 and sum(x.Pack_qty) < 61.0 -- (3) 구매 SKU 11종 미만 & 팩 수량 61개 미만
 	   )
 	group by t.YYYYMM, t.id 
 	having
 	       count(distinct b.engname) < 11 -- (3) SKU 11종 미만
 	   and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만
 )   
---insert into cu.agg_CU_TEREA_Taste_Sourcing
+insert into cu.agg_CU_TEREA_Taste_Sourcing
 select 
 	t.YYYYMM, t.id,
 	t.SIDO_NM, 
@@ -303,6 +314,24 @@ group by t.YYYYMM, t.FLAVORSEG_type
 order by t.YYYYMM, t.FLAVORSEG_type;
 
 
+
+-- gender, age  by purchasers
+select 'Total', t.FLAVORSEG_type, 
+	count(*) total_Purchaser_cnt, 
+	count(case when t.gender ='1' then 1 end ) 'Male',
+	count(case when t.gender ='2' then 1 end ) 'Female',
+	count(case when t.age in ( '1','2') then 1 end) '20s',
+	count(case when t.age = '3' then 1 end) '30s',
+	count(case when t.age = '4' then 1 end) '40s',
+	count(case when t.age = '5' then 1 end) '50s',
+	count(case when t.age = '6' then 1 end) '60s'
+from cu.agg_CU_TEREA_Taste_Sourcing  t
+	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+where 1=1 	
+group by t.FLAVORSEG_type 
+order by t.FLAVORSEG_type;
+
+
 -- Cigatype, Taste Total (Taste는 구매자 수가 다를 수 있음. 한 사람이 여러 Taste를 구매)
 select 
 	t.YYYYMM, t.FLAVORSEG_type  ,
@@ -423,6 +452,24 @@ group BY
 	concat(FLAVORSEG_type3,' X ', New_TARSEGMENTAT), 
 	t.FLAVORSEG_type
 ;
+
+select  
+	t.YYYYMM,
+	concat(FLAVORSEG_type3,' X ', New_TARSEGMENTAT) flavorXtar,
+	count(distinct case when b.cigatype ='CC' then t.id end) CC,
+	count(distinct case when b.cigatype ='HnB' then t.id end) HnB
+from  cu.agg_CU_TEREA_Taste_Sourcing t
+	join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
+		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
+				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND b.cigatype != 'CSV'  
+	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+where 1=1 
+group BY 
+	t.YYYYMM,
+	concat(FLAVORSEG_type3,' X ', New_TARSEGMENTAT)
+;
+
 
 
 -- user_past_type_M1

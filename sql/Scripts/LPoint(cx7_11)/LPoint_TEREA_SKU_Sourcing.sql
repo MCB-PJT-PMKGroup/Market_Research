@@ -114,11 +114,12 @@ order by de_dt;
 --TEREA YUGEN				4,549
 
 
+
 -- CU sourcing_M1 모수 테이블
 with temp as( 
 select * 
 from ( 
-   select  YYYYMM  , id, max(seq) seq, row_number() over (partition by id order by YYYYMM) rn  
+   select  YYYYMM  , id, max(engname) eng_name, row_number() over (partition by id order by YYYYMM) rn  
    from
        cx.fct_K7_Monthly a
        join cx.product_master b on a.Product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
@@ -130,7 +131,7 @@ where rn = 1
 ),
 TEREA_Purchasers as ( 
 	select t.YYYYMM, t.id, 
-		max(case when t.seq = a.seq then b.engname end) eng_name
+		eng_name
 	from temp t
 		join cx.fct_K7_Monthly a on a.id = t.id  and  a.YYYYMM = t.YYYYMM
 		join cx.product_master b on a.Product_code = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
@@ -148,7 +149,7 @@ TEREA_Purchasers as (
           group by x.YYYYMM, x.id
           having count(distinct y.engname) < 11 and sum(x.Pack_qty) < 61.0 -- (3) 구매 SKU 11종 미만 & 팩 수량 61개 미만
 	   )
-	group by t.YYYYMM, t.id 
+	group by t.YYYYMM, t.id , eng_name
 	having
 	       count(distinct b.engname) < 11 -- (3) SKU 11종 미만
 	   and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만

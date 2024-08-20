@@ -21,7 +21,7 @@ from (
        cu.Fct_BGFR_PMI_Monthly a
        join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
    where 1=1 
-   and b.ProductSubFamilyCode = 'TEREA'  
+   and b.ProductSubFamilyCode = 'MIIX'  
    group by YYYYMM , a.id
 ) as t
 where rn = 1
@@ -136,9 +136,9 @@ where Total_Pack_Qty > 180;
 
 -- 202302 월부터 소싱 
 -- TEREA			118,644 rows
--- MIIX 			164,697 rows
--- FIIT 			26,769 rows
--- NEO/NEOSTICKS 	36,687 rows
+-- MIIX 			164,642 rows
+-- FIIT 			26,752 rows
+-- NEO/NEOSTICKS 	36,674 rows
 
 
 -- CU sourcing_M1 모수 테이블
@@ -276,7 +276,7 @@ select
 	sum(case when engname = 'TEREA SUN PEARL' then  a.Pack_qty end ) 'TEREA SUN PEARL',
 	sum(case when engname = 'TEREA TEAK' then  a.Pack_qty end ) 'TEREA TEAK',
 	sum(case when engname = 'TEREA YUGEN' then  a.Pack_qty end ) 'TEREA YUGEN'	
-into cu.agg_CU_TEREA_Total_Sourcing2
+--into cu.agg_CU_TEREA_Total_Sourcing
 --into cu.agg_CU_MIIX_Total_Sourcing
 --into cu.agg_CU_FIIT_Total_Sourcing
 --into cu.agg_CU_NEO_Total_Sourcing
@@ -293,19 +293,19 @@ group by t.YYYYMM, t.id, t.SIDO_NM
 
 -- 월별 신규 테리어 유입 대상자 추출 
 select YYYYMM, count(*) 
-from cu.agg_CU_TEREA_Total_Sourcing2
+from cu.agg_CU_TEREA_Total_Sourcing
 group by YYYYMM;
 
 
 select id, count(*)
-from cu.agg_CU_TEREA_Total_Sourcing2
+from cu.agg_CU_TEREA_Total_Sourcing
 group by id 
 having count(*) > 1;
 
 
 
 select SIDO_NM, count(*) TEREA
-from cu.agg_CU_TEREA_Total_Sourcing3
+from cu.agg_CU_TEREA_Total_Sourcing
 where SIDO_NM in ('서울특별시','인천광역시','부산광역시','울산광역시','광주광역시','대전광역시', '대구광역시')
 group by SIDO_NM;
 
@@ -333,7 +333,7 @@ select t.YYYYMM, -- t.SIDO_NM ,
 	count(case when t.age = '4' then 1 end) '40s',
 	count(case when t.age = '5' then 1 end) '50s',
 	count(case when t.age = '6' then 1 end) '60s'
-from cu.agg_CU_TEREA_Total_Sourcing2  t
+from cu.agg_CU_TEREA_Total_Sourcing  t
 	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
 where 1=1 
 group by t.YYYYMM--, t.SIDO_NM 
@@ -357,7 +357,7 @@ select
 	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='Fresh' then t.id end ) 'HnB Fresh',
 	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='New Taste' then t.id end ) 'HnB New Taste',
 	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='Regular' then t.id end ) 'HnB Regular'
-from  cu.agg_CU_TEREA_Total_Sourcing2 t
+from  cu.agg_CU_TEREA_Total_Sourcing t
 	join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id 
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
@@ -433,9 +433,8 @@ SELECT YYYYMM, -- gr_cd ,
     SUM([TEREA SUN PEARL]) AS "TEREA SUN PEARL",
     SUM([TEREA TEAK]) AS "TEREA TEAK",
     SUM([TEREA YUGEN]) AS "TEREA YUGEN"
-FROM cu.agg_CU_TEREA_Total_Sourcing2 t
+FROM cu.agg_CU_NEO_Total_Sourcing t
 	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
---where SIDO_NM in ('서울특별시','인천광역시','부산광역시','울산광역시','광주광역시','대전광역시', '대구광역시')	
 GROUP BY YYYYMM--, gr_cd 
 ORDER BY YYYYMM--, gr_cd
 ;

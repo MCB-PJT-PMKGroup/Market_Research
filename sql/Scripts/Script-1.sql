@@ -20,7 +20,6 @@ FROM cx.fct_K7_Monthly a
 	JOIN cx.product_master_temp b ON a.product_code = b.PROD_ID
 WHERE b.cigatype != 'CSV'
 AND b.ENGNAME != 'Cleaning Stick'
-AND LEN(a.id) > 4
 AND a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -11, GETDATE()), 112) 
 				 AND CONVERT(NVARCHAR(6), DATEADD(MONTH, 0, GETDATE()), 112)
 AND b.ProductSubFamilyCode = 'HEETS'

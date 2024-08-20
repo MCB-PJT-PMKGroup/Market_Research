@@ -398,3 +398,18 @@ from cu.cu_master_tmp a
 	left join  cu.dim_product_master b on a.PROD_ID = b.PROD_ID 
 where b.prod_id is null;
 
+
+
+
+
+select * 
+from cu.Fct_BGFR_PMI_Monthly a
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
+where id ='00ee9f0044c986de6cba08c7ec6208ba5caabd9b702ac2810c07397bca22b11d'
+order by YYYYMM;
+
+select * from cu.agg_CU_TEREA_Taste_Sourcing 
+where id = '00ee9f0044c986de6cba08c7ec6208ba5caabd9b702ac2810c07397bca22b11d';
+
+select * from cu.agg_CU_TEREA_Total_Sourcing 
+where id ='00ee9f0044c986de6cba08c7ec6208ba5caabd9b702ac2810c07397bca22b11d';

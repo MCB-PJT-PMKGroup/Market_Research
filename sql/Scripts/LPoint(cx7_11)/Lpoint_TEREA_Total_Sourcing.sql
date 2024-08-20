@@ -99,22 +99,22 @@ where id ='D5053CC18CACDABA4A3BC0D6319F1B3AA52C0F1AEB84FD9D5414334BEF5B7CDB';
 
 
 -- L.Point 대상은 202211 월부터 소싱 
--- TEREA			52,763 rows
--- MIIX 			52,996 rows
--- FIIT 			9,734 rows
--- NEO/NEOSTICKS 	15,617 rows
+-- TEREA			52,720 rows
+-- MIIX 			52,969 rows
+-- FIIT 			9,723 rows
+-- NEO/NEOSTICKS 	15,597 rows
 
 
 -- CU sourcing_M1 모수 테이블
 with temp as( 
 select * 
 from ( 
-   select  YYYYMM  , id, max(seq) seq, row_number() over (partition by id order by YYYYMM) rn  
+   select  YYYYMM  , id, row_number() over (partition by id order by YYYYMM) rn  
    from
        cx.fct_K7_Monthly a
        join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
    where 1=1
-   and b.ProductSubFamilyCode = 'TEREA' 
+   and b.ProductSubFamilyCode in ('NEO', 'NEOSTICKS')
    group by YYYYMM , a.id
 ) as t
 where rn = 1
@@ -287,7 +287,7 @@ select t.YYYYMM,
 	count(case when t.age = '50대' then 1 end) '50s',
 	count(case when t.age = '60대' then 1 end) '60s',
 	count(case when t.age = '70대' then 1 end) '70s'
-from cx.agg_LPoint_TEREA_Total_Sourcing t
+from cx.agg_LPoint_NEO_Total_Sourcing t
 where 1=1 
 group by t.YYYYMM
 order by t.YYYYMM
@@ -310,7 +310,7 @@ select
 	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='Fresh' then t.id end ) 'HnB Fresh',
 	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='New Taste' then t.id end ) 'HnB New Taste',
 	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='Regular' then t.id end ) 'HnB Regular'
-from cx.agg_LPoint_TEREA_Total_Sourcing  t
+from cx.agg_LPoint_NEO_Total_Sourcing  t
 	join cx.fct_K7_Monthly a on a.id = t.id 
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
@@ -324,7 +324,7 @@ order by t.YYYYMM
 
 
 -- PMO Qty, CC Taste, HnB Taste, IQOS Qty
-SELECT YYYYMM, 'Total',
+SELECT YYYYMM,
     SUM([BAT]) AS BAT,
     SUM([JTI]) AS JTI,
     SUM([KTG]) AS KTG,
@@ -385,7 +385,7 @@ SELECT YYYYMM, 'Total',
     SUM([TEREA SUN PEARL]) AS "TEREA SUN PEARL",
     SUM([TEREA TEAK]) AS "TEREA TEAK",
     SUM([TEREA YUGEN]) AS "TEREA YUGEN"
-FROM cx.agg_LPoint_TEREA_Total_Sourcing t	
+FROM cx.agg_LPoint_NEO_Total_Sourcing t	
 GROUP BY YYYYMM 
 ORDER BY YYYYMM
 ;
