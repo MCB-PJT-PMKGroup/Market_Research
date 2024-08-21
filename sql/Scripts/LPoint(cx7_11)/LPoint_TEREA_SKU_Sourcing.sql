@@ -95,24 +95,23 @@ order by de_dt;
 -- 데이터 검증 끝
 
 
---TEREA AMBER 				7,450
---TEREA ARBOR PEARL			2,298
---TEREA BLACK GREEN			6,018
---TEREA BLACK PURPLE		14,338
---TEREA BLACK YELLOW		4,703
---TEREA BLUE				10,818
---TEREA GREEN				8,766
---TEREA GREEN ZING			3,098
---TEREA OASIS PEARL			10,856
---TEREA PURPLE WAVE			14,943
---TEREA RUSSET				2,673
---TEREA SILVER				7,407
---TEREA STARLING PEARL		760
---TEREA SUMMER WAVE			8,446
---TEREA SUN PEARL			6,388
---TEREA TEAK				2,076
---TEREA YUGEN				4,549
-
+--TEREA AMBER 				7,754
+--TEREA ARBOR PEARL			2,579
+--TEREA BLACK GREEN			6,314
+--TEREA BLACK PURPLE		15,116
+--TEREA BLACK YELLOW		4,900
+--TEREA BLUE				11,479
+--TEREA GREEN				9,249
+--TEREA GREEN ZING			3,270
+--TEREA OASIS PEARL			11,856
+--TEREA PURPLE WAVE			15,776
+--TEREA RUSSET				2,946
+--TEREA SILVER				7,725
+--TEREA STARLING PEARL		1,838
+--TEREA SUMMER WAVE			8,849
+--TEREA SUN PEARL			6,849
+--TEREA TEAK				2,233
+--TEREA YUGEN				4,729
 
 
 -- CU sourcing_M1 모수 테이블
@@ -123,8 +122,8 @@ from (
    from
        cx.fct_K7_Monthly a
        join cx.product_master b on a.Product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-   where 1=1 
-   and b.ProductSubFamilyCode = 'TEREA'  and engname ='TEREA YUGEN'
+   where 1=1
+   and b.ProductSubFamilyCode = 'TEREA' and engname = 'TEREA YUGEN'
    group by YYYYMM , a.id
 ) as t
 where rn = 1

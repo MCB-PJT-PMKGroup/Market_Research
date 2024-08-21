@@ -11,7 +11,7 @@
 with temp as( 
 select * 
 from (
-   select  YYYYMM  , id, max(seq) seq, row_number() over (partition by id order by YYYYMM) rn  
+   select  YYYYMM, id, row_number() over (partition by id order by YYYYMM) rn  
    from
        cx.fct_K7_Monthly a
        join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
@@ -25,7 +25,7 @@ select t.YYYYMM, count(distinct t.id)
 from temp t
 	join cx.fct_K7_Monthly a on a.id = t.id  and  a.YYYYMM = t.YYYYMM
 	join cx.product_master b on a.product_code = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-where t.YYYYMM between '202403' and '202406'
+where t.YYYYMM >= '202211'
 and
    exists (
        -- (2) 직전 3개월 동안 구매이력이 있는지 확인
@@ -99,10 +99,10 @@ where id ='D5053CC18CACDABA4A3BC0D6319F1B3AA52C0F1AEB84FD9D5414334BEF5B7CDB';
 
 
 -- L.Point 대상은 202211 월부터 소싱 
--- TEREA			52,720 rows
--- MIIX 			52,969 rows
--- FIIT 			9,723 rows
--- NEO/NEOSTICKS 	15,597 rows
+-- TEREA			55,622 rows
+-- MIIX 			55,683 rows
+-- FIIT 			10,071 rows
+-- NEO/NEOSTICKS 	16,173 rows
 
 
 -- CU sourcing_M1 모수 테이블
@@ -240,7 +240,7 @@ select
 --into cx.agg_LPoint_TEREA_Total_Sourcing
 --into cx.agg_LPoint_MIIX_Total_Sourcing
 --into cx.agg_LPoint_FIIT_Total_Sourcing
---into cx.agg_LPoint_NEO_Total_Sourcing
+into cx.agg_LPoint_NEO_Total_Sourcing
 from TEREA_Purchasers t
 	join cx.fct_K7_Monthly a on t.id = a.id 	-- 구매자
 		-- 테리어 구매자가 이전 3개월 동안 무엇을 구매했는지
@@ -287,7 +287,7 @@ select t.YYYYMM,
 	count(case when t.age = '50대' then 1 end) '50s',
 	count(case when t.age = '60대' then 1 end) '60s',
 	count(case when t.age = '70대' then 1 end) '70s'
-from cx.agg_LPoint_NEO_Total_Sourcing t
+from cx.agg_LPoint_MIIX_Total_Sourcing t
 where 1=1 
 group by t.YYYYMM
 order by t.YYYYMM
@@ -310,7 +310,7 @@ select
 	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='Fresh' then t.id end ) 'HnB Fresh',
 	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='New Taste' then t.id end ) 'HnB New Taste',
 	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='Regular' then t.id end ) 'HnB Regular'
-from cx.agg_LPoint_NEO_Total_Sourcing  t
+from cx.agg_LPoint_MIIX_Total_Sourcing  t
 	join cx.fct_K7_Monthly a on a.id = t.id 
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
@@ -385,7 +385,7 @@ SELECT YYYYMM,
     SUM([TEREA SUN PEARL]) AS "TEREA SUN PEARL",
     SUM([TEREA TEAK]) AS "TEREA TEAK",
     SUM([TEREA YUGEN]) AS "TEREA YUGEN"
-FROM cx.agg_LPoint_NEO_Total_Sourcing t	
+FROM cx.agg_LPoint_TEREA_Total_Sourcing2 t	
 GROUP BY YYYYMM 
 ORDER BY YYYYMM
 ;
