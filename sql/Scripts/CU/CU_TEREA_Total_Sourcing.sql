@@ -127,6 +127,25 @@ group by t.YYYYMM, t.id
 
 
 
+select t.YYYYMM, t.id --, row_number() over (partition by t.id order by t.YYYYMM) rn  
+from cu.v_user_3month_list t 
+   join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
+   join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+where 
+	not exists (
+		select 1
+	      from cu.Fct_BGFR_PMI_Monthly x
+	   		join cu.dim_product_master y on x.ITEM_CD = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
+		where
+	       x.YYYYMM < t.YYYYMM			-- 이전에 구매이력이 있으면 안됨. 최초 구매 월만
+		and t.id = x.id
+		and y.ProductSubFamilyCode = b.ProductSubFamilyCode   
+	)
+and b.ProductSubFamilyCode = 'TEREA'  
+group by t.YYYYMM, t.id
+;
+
+
 
 -- Data Validation 데이터 검증 작업!!!!!!!!!!!!!
 -- 중복 체크
@@ -537,14 +556,14 @@ select YYYYMM,
     CASE WHEN CompHnB_Purchased = 1 THEN ' + Comp. HnB' ELSE '' END + 
     CASE WHEN CC_Purchased = 1 THEN ' + CC' ELSE '' END 
      as Cigatype,
-    count(*) purchaser_cnt
+    count(distinct id) purchaser_cnt
 from temp
 group by YYYYMM,
     'IQOS' +
     CASE WHEN CompHnB_Purchased = 1 THEN ' + Comp. HnB' ELSE '' END + 
     CASE WHEN CC_Purchased = 1 THEN ' + CC' ELSE '' END 
 ;
-
+--202302	IQOS	2007
 
 -- user_current_type (MIIX, FIIT, NEO 전용)
 with temp as (

@@ -257,3 +257,28 @@ from cx.fct_K7_Monthly
 WHERE len(id) < 6;
 
 
+
+
+select * 
+from ( 
+   select  YYYYMM  , id, row_number() over (partition by id order by YYYYMM) rn  
+   from
+       cx.fct_K7_Monthly a
+       join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+   where 1=1
+   and b.ProductSubFamilyCode = 'TEREA'
+   group by YYYYMM , a.id
+) as t
+where rn = 1
+;
+
+select  YYYYMM  , id, row_number() over (partition by id order by YYYYMM) rn  
+   from
+       cx.fct_K7_Monthly a
+       join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+   where 1=1
+   and b.ProductSubFamilyCode = 'TEREA'
+   group by YYYYMM , a.id
+   order by id, rn;
+  
+  

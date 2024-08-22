@@ -268,7 +268,6 @@ having count(*) > 1;
 
 
 
-
 -- 엑셀 시트 데이터 반영 작업
 --into cx.agg_LPoint_TEREA_Total_Sourcing
 --into cx.agg_LPoint_MIIX_Total_Sourcing
@@ -287,7 +286,7 @@ select t.YYYYMM,
 	count(case when t.age = '50대' then 1 end) '50s',
 	count(case when t.age = '60대' then 1 end) '60s',
 	count(case when t.age = '70대' then 1 end) '70s'
-from cx.agg_LPoint_MIIX_Total_Sourcing t
+from cx.agg_LPoint_NEO_Total_Sourcing t
 where 1=1 
 group by t.YYYYMM
 order by t.YYYYMM
@@ -310,7 +309,7 @@ select
 	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='Fresh' then t.id end ) 'HnB Fresh',
 	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='New Taste' then t.id end ) 'HnB New Taste',
 	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='Regular' then t.id end ) 'HnB Regular'
-from cx.agg_LPoint_MIIX_Total_Sourcing  t
+from cx.agg_LPoint_NEO_Total_Sourcing  t
 	join cx.fct_K7_Monthly a on a.id = t.id 
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
@@ -385,7 +384,7 @@ SELECT YYYYMM,
     SUM([TEREA SUN PEARL]) AS "TEREA SUN PEARL",
     SUM([TEREA TEAK]) AS "TEREA TEAK",
     SUM([TEREA YUGEN]) AS "TEREA YUGEN"
-FROM cx.agg_LPoint_TEREA_Total_Sourcing2 t	
+FROM cx.agg_LPoint_NEO_Total_Sourcing t	
 GROUP BY YYYYMM 
 ORDER BY YYYYMM
 ;
