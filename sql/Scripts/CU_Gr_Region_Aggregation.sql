@@ -7,6 +7,58 @@
 ---	Gr. 지역 별 miix 신규 구매자
 
 
+-- HnB New Purchasers 모수 73,207 건
+with temp as( 
+select * 
+from ( 
+	-- (1) 최초 구매이력이 있는지 확인
+   select  YYYYMM  , id, max(seq) seq, row_number() over (partition by id order by YYYYMM) rn  
+   from
+       cu.Fct_BGFR_PMI_Monthly a
+       join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype = 'HnB'
+   where 1=1 
+   group by YYYYMM , a.id
+) as t
+where rn = 1
+),
+HnB_NewPurchaser as (
+select t.YYYYMM, max(case when t.seq = a.seq then a.SIDO_NM end) SIDO_NM, t.id
+from temp t
+	join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id  and  a.YYYYMM = t.YYYYMM
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+where t.YYYYMM >= '202401'
+and
+   exists (
+       -- (2) 직전 3개월 동안 구매이력이 있는지 확인
+       select 1
+       from cu.Fct_BGFR_PMI_Monthly x
+       		join cu.dim_product_master y on x.ITEM_CD = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
+       where
+           x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
+           				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
+       and a.id = x.id
+       group by x.YYYYMM, x.id
+	   having count(distinct y.engname) < 11 and sum(x.Pack_qty) < 61.0 -- (3) 구매 SKU 11종 미만 & 팩 수량 61개 미만
+   )
+group by t.YYYYMM, t.id 
+having
+       count(distinct b.engname) < 11 -- (3) SKU 11종 미만
+   and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만
+)
+select t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region',
+	count(distinct t.id) HnB_New_Purchasers
+from HnB_NewPurchaser  t
+	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+where t.YYYYMM >= '202401'
+group by 
+	grouping sets ( 
+		(t.YYYYMM, gr_cd),
+		(t.YYYYMM)
+	)
+;
+
+
+
 -- 지역별 구매자 상세이력 뽑기
 select * 
 from cu.agg_CU_TEREA_Total_Sourcing t
@@ -48,7 +100,7 @@ with temp as (
 	       count(distinct b.engname) < 11 -- (3) SKU 11종 미만
 	   and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만
 )
-select t.YYYYMM, c.gr_cd 'Gr Region',
+select t.YYYYMM,  COALESCE(gr_cd, '합계') 'Gr Region',
 	count(distinct t.id) 'HnB Total',
 	count(distinct case when ProductSubFamilyCode ='TEREA' then t.id end) 'TEREA',
 	count(distinct case when ProductSubFamilyCode ='MIIX' then t.id end) 'MIIX'
@@ -63,7 +115,9 @@ group by grouping sets ((t.YYYYMM, c.gr_cd), (t.YYYYMM) )
 
 -- 1764603ba07a8ec520734469d8190f850a25f61a5d6f9e2a66be9bfc96c5416c Gr Region 광주, 대전 두 곳에서 구매함.
 
-select a.YYYYMM, c.gr_cd 'Gr Region',
+
+
+select a.YYYYMM,  COALESCE(gr_cd, '합계')  'Gr Region',
 	count(distinct a.id) 'HnB Total',
 	count(distinct case when ProductSubFamilyCode ='TEREA' then a.id end) 'TEREA',
 	count(distinct case when ProductSubFamilyCode ='MIIX' then a.id end) 'MIIX'
@@ -73,6 +127,23 @@ from cu.Fct_BGFR_PMI_Monthly a
 where a.YYYYMM >= '202401'
 --and t.id ='003e54a35c1ffbc50c2bce638da7fc74f1aed60b44e6385b9b88427ca7fcdea5'
 group by grouping sets ((a.YYYYMM, c.gr_cd), (a.YYYYMM) )
+
+
+---	Gr. 지역 별 miix 신규 구매자
+select t.YYYYMM,  COALESCE(gr_cd, '합계')  'Gr Region' ,
+	count(distinct t.id) total_Purchaser_cnt
+from cu.agg_CU_MIIX_Total_Sourcing  t
+	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+where t.YYYYMM >= '202401'
+group by 
+	grouping sets ( 
+		(t.YYYYMM, gr_cd),
+		(t.YYYYMM)
+	)
+
+;
+
+
 
 
 -- 검증 작업
@@ -90,23 +161,6 @@ from (
 group by YYYYMM, id 
 having count(*) > 1
 ;
-
-
-
----	Gr. 지역 별 miix 신규 구매자
-select t.YYYYMM, gr_cd,
-	count(distinct t.id) total_Purchaser_cnt
-from cu.agg_CU_MIIX_Total_Sourcing  t
-	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
-where t.YYYYMM >= '202401'
-group by 
-	grouping sets ( 
-		(t.YYYYMM, gr_cd),
-		(t.YYYYMM)
-	)
-
-;
-
 
 
 

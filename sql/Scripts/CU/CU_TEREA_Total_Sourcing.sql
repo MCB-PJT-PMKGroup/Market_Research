@@ -51,6 +51,46 @@ having
 ;
 
 
+-- HnB 소싱 모수 
+with temp as( 
+select * 
+from ( 
+	-- (1) 최초 구매이력이 있는지 확인
+   select  YYYYMM  , id, max(seq) seq, row_number() over (partition by id order by YYYYMM) rn  
+   from
+       cu.Fct_BGFR_PMI_Monthly a
+       join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+   where 1=1 
+   and b.ProductSubFamilyCode = 'MIIX'  
+   group by YYYYMM , a.id
+) as t
+where rn = 1
+)
+select t.YYYYMM, max(case when t.seq = a.seq then a.SIDO_NM end) SIDO_NM, t.id
+from temp t
+	join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id  and  a.YYYYMM = t.YYYYMM
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+where t.YYYYMM >= '202211'
+and
+   exists (
+       -- (2) 직전 3개월 동안 구매이력이 있는지 확인
+       select 1
+       from cu.Fct_BGFR_PMI_Monthly x
+       		join cu.dim_product_master y on x.ITEM_CD = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
+       where
+           x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
+           				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
+       and a.id = x.id
+       group by x.YYYYMM, x.id
+	   having count(distinct y.engname) < 11 and sum(x.Pack_qty) < 61.0 -- (3) 구매 SKU 11종 미만 & 팩 수량 61개 미만
+   )
+group by t.YYYYMM, t.id 
+having
+       count(distinct b.engname) < 11 -- (3) SKU 11종 미만
+   and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만
+;
+
+
 
 	-- (1) 22년 11월 부터 구매자가 월별 구매이력
 -- 14,724,007
@@ -125,25 +165,6 @@ and b.ProductSubFamilyCode = 'TEREA'
 group by t.YYYYMM, t.id
 ;
 
-
-
-select t.YYYYMM, t.id --, row_number() over (partition by t.id order by t.YYYYMM) rn  
-from cu.v_user_3month_list t 
-   join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
-   join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-where 
-	not exists (
-		select 1
-	      from cu.Fct_BGFR_PMI_Monthly x
-	   		join cu.dim_product_master y on x.ITEM_CD = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
-		where
-	       x.YYYYMM < t.YYYYMM			-- 이전에 구매이력이 있으면 안됨. 최초 구매 월만
-		and t.id = x.id
-		and y.ProductSubFamilyCode = b.ProductSubFamilyCode   
-	)
-and b.ProductSubFamilyCode = 'TEREA'  
-group by t.YYYYMM, t.id
-;
 
 
 
