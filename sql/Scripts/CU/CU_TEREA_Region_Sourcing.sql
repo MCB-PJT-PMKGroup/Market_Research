@@ -279,7 +279,7 @@ select
 	sum(case when engname = 'TEREA SUN PEARL' then  a.Pack_qty end ) 'TEREA SUN PEARL',
 	sum(case when engname = 'TEREA TEAK' then  a.Pack_qty end ) 'TEREA TEAK',
 	sum(case when engname = 'TEREA YUGEN' then  a.Pack_qty end ) 'TEREA YUGEN'	
-into cu.agg_CU_TEREA_Total_Sourcing
+--into cu.agg_CU_TEREA_Total_Sourcing
 from TEREA_Purchasers t
 	join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 	-- 구매자
 		-- 테리어 구매자가 이전 3개월 동안 무엇을 구매했는지

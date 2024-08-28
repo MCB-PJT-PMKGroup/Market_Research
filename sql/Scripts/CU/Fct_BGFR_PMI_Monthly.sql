@@ -17,17 +17,24 @@ CREATE TABLE BPDA.cu.Fct_BGFR_PMI_Monthly (
 	CONSTRAINT Fct_BGFR_PMI_Monthly_PK PRIMARY KEY (id,ITEM_CD,YYYYMM,SIDO_NM)
 );
 
-alter table cu.Fct_BGFR_PMI_Monthly  add constraint PK_fct_BGFR_PMI_Monthly primary key (ITEM_CD, CUST_ID, YM_CD, SIDO_CD );
+-- alter table cu.Fct_BGFR_PMI_Monthly  add constraint PK_fct_BGFR_PMI_Monthly primary key (ITEM_CD, CUST_ID, YM_CD, SIDO_CD );
 
 update statistics cu.fct_BGFR_PMI_Monthly;
 -- update statistics cx.fct_k7_monthly;
 
+drop INDEX ix_Fct_BGFR_PMI_Monthly_ITEM_CD on cu.Fct_BGFR_PMI_Monthly ;
+----
+CREATE NONCLUSTERED INDEX ix_Fct_BGFR_PMI_Monthly_ITEM_CD
+ON [cu].[Fct_BGFR_PMI_Monthly] ( item_cd, YYYYMM)
+include ( pack_qty, seq);
+----;
 
 
 --insert into cu.Fct_BGFR_PMI_Monthly 
---	(YM_CD
---	,SIDO_CD
---	,CUST_ID
+--	(YYYYMM
+--  ,SIDO_CD
+--	,SIDO_NM
+--	,id
 --	,GENDER_CD
 --	,AGE_CD
 --	,ITEM_CD
@@ -36,6 +43,7 @@ update statistics cu.fct_BGFR_PMI_Monthly;
 --	)
 --select YM_CD
 --,SIDO_CD
+--,SIDO_NM
 --,CUST_ID
 --,GENDER_CD
 --,AGE_CD
@@ -78,25 +86,3 @@ update statistics cu.fct_BGFR_PMI_Monthly;
 --202404 1,773,180
 --202405 1,821,034
 --202406 1,809,086
-
-
-/*
-Missing Index Details 
-The Query Processor estimates that implementing the following index could improve the query cost by 12.8461%.
-*/
-
-/*
-USE [BPDA]
-GO
-CREATE NONCLUSTERED INDEX [<Name of Missing Index, sysname,>]
-ON [cu].[Fct_BGFR_PMI_Monthly] ([YYYYMM])
-INCLUDE ([PACK_QTY])
-GO
-*/
-
-drop INDEX ix_Fct_BGFR_PMI_Monthly_YYYYMM on cu.Fct_BGFR_PMI_Monthly ;
-
-CREATE NONCLUSTERED INDEX ix_Fct_BGFR_PMI_Monthly_ITEM_CD
-ON [cu].[Fct_BGFR_PMI_Monthly] ([ITEM_CD])
-INCLUDE ([PACK_QTY])
-;

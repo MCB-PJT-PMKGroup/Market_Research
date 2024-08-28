@@ -1,4 +1,4 @@
-DECLARE @StartDate DATE = '2026-01-01';
+DECLARE @StartDate DATE = '2010-01-01';
 DECLARE @EndDate DATE = '2050-12-31';
 
 WHILE @StartDate <= @EndDate

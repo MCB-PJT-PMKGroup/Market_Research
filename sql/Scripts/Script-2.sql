@@ -66,12 +66,16 @@ from
 		--and b.ProductFamilyCode != t.ProductFamilyCode and b.New_TARSEGMENTAT != t.New_TARSEGMENTAT
 group by rollup(b.cigatype, b.New_FLAVORSEG, b.New_TARSEGMENTAT);
 
+
+
 select id , count(*) ttt
 from  cx.agg_MLB_LTS_Switch2
 group by id 
 having count(*) >1
 order by  count(*) DESC 
 ;
+
+
 
 select * 
 FROM 

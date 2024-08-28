@@ -280,5 +280,15 @@ select  YYYYMM  , id, row_number() over (partition by id order by YYYYMM) rn
    and b.ProductSubFamilyCode = 'TEREA'
    group by YYYYMM , a.id
    order by id, rn;
+
   
   
+select * from cu.agg_CU_TEREA_Taste_Sourcing;
+
+
+select ENGNAME , cigatype, * 
+from cu.Fct_BGFR_PMI_Monthly a 
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID 
+where id ='000d805b7a09b17b673d0201fa00e7c043a01dd1d554b0061ae3e002980a403c';
+--202309	경기도 HnB 첫 구매
+

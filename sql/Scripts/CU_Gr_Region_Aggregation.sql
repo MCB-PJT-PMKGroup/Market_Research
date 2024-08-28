@@ -75,13 +75,13 @@ and b.cigatype='HnB' and b.company != 'PMK'
 
 
 
--- 월별, gr 지역별 HnB 집계
+-- 지역별 전체 HnB 구매
 with temp as (
-	-- (1) 22년 11월 부터 구매자가 월별 구매이력
-	select a.YYYYMM, a.id
+	-- (1) 23년 9월 부터 구매자가 월별 구매이력
+	select a.YYYYMM, a.id,  max(seq) seq
 	from  cu.Fct_BGFR_PMI_Monthly a 
-		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-	where a.YYYYMM >= '202211'
+		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype = 'HnB'
+	where a.YYYYMM >= '202401'
 	and
 	   exists (
 	       -- (2) 직전 3개월 동안 구매이력이 있는지 확인
@@ -105,12 +105,17 @@ select t.YYYYMM,  COALESCE(gr_cd, '합계') 'Gr Region',
 	count(distinct case when ProductSubFamilyCode ='TEREA' then t.id end) 'TEREA',
 	count(distinct case when ProductSubFamilyCode ='MIIX' then t.id end) 'MIIX'
 from temp t
-  	join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id and t.YYYYMM = a.YYYYMM
+  	join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id and t.seq = a.seq
 	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE = 'CIGARETTES' and cigatype = 'HnB'
 	join cu.dim_Regional_area c on a.SIDO_nm = c.sido_nm
 where t.YYYYMM >= '202401'
 --and t.id ='003e54a35c1ffbc50c2bce638da7fc74f1aed60b44e6385b9b88427ca7fcdea5'
-group by grouping sets ((t.YYYYMM, c.gr_cd), (t.YYYYMM) )
+group by 
+	grouping sets (
+	(t.YYYYMM, c.gr_cd), 
+	(t.YYYYMM) 
+	)
+order by YYYYMM, 'Gr Region'
 ;
 
 -- 1764603ba07a8ec520734469d8190f850a25f61a5d6f9e2a66be9bfc96c5416c Gr Region 광주, 대전 두 곳에서 구매함.
@@ -140,9 +145,21 @@ group by
 		(t.YYYYMM, gr_cd),
 		(t.YYYYMM)
 	)
-
+order by YYYYMM, 'Gr Region'
 ;
 
+---	Gr. 지역 별 Total HnB 신규 구매자
+select t.YYYYMM,  COALESCE(gr_cd, '합계')  'Gr Region' ,
+	count(distinct t.id) total_Purchaser_cnt
+from cu.agg_CU_TEREA_Total_Sourcing  t
+	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+where t.YYYYMM >= '202401'
+group by 
+	grouping sets ( 
+		(t.YYYYMM, gr_cd),
+		(t.YYYYMM)
+	)
+order by YYYYMM, 'Gr Region';
 
 
 
@@ -171,12 +188,16 @@ having count(*) > 1
 
 --	Gr.지역 별 sourcing 작업해주신 내용에서 comp hnb에서 유입인 경우 miix/fiit/aiim/(neo or neostick) 구매자
 -- 케이스를 위해 f32e0f276a6666cc7a831cbe8b36bddee3953c020eb8752026d91602e4aed3aa 구매자는 상세 이력 확인용(지역별).
+-- Past 3 Month Comp. HnB 구매자수
 select  
-	t.YYYYMM, gr_cd 'Gr Region',
+	t.YYYYMM,  COALESCE(gr_cd, '합계') 'Gr Region',
 	count(distinct case when b.ProductSubFamilyCode='MIIX' then t.id end) 'MIIX',
 	count(distinct case when b.ProductSubFamilyCode='FIIT' then t.id end) 'FIIT',
 	count(distinct case when b.ProductSubFamilyCode='AIIM' then t.id end) 'AIIM',
 	count(distinct case when b.ProductSubFamilyCode in ('NEO', 'NEOSTICKS') then t.id end) 'NEO',
+	count(distinct case when b.FLAVORSEG_type3 = 'Fresh' then t.id end) 'Fresh',
+	count(distinct case when b.FLAVORSEG_type3 = 'New Taste' then t.id end) 'New Taste',
+	count(distinct case when b.FLAVORSEG_type3 = 'Regular' then t.id end) 'Regular',
 	count(distinct t.id) 'Comp HnB Purchasers'
 from cu.agg_CU_TEREA_Total_Sourcing t
 		join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
@@ -191,9 +212,7 @@ and b.company != 'PMK'
 group by 
 	grouping sets ( 
 		(t.YYYYMM, gr_cd),
-		(t.YYYYMM),
-		(gr_cd),
-		()
+		(t.YYYYMM)
 	)
 ;
 
@@ -262,13 +281,16 @@ group BY
 
 
 ---	Gr.지역 별 sourcing 작업해주신 내용에서 current usage에서 com hnb인 경우 같이 사용하고 있는 miix/fiit/aiim/(neo or neostick) 구매자
-
+-- Current Comp. HnB 구매자 수
 select  
-	t.YYYYMM, gr_cd 'Gr Region',
+	t.YYYYMM, COALESCE(gr_cd, '합계') 'Gr Region',
 	count(distinct case when b.ProductSubFamilyCode='MIIX' then t.id end) 'MIIX',
 	count(distinct case when b.ProductSubFamilyCode='FIIT' then t.id end) 'FIIT',
 	count(distinct case when b.ProductSubFamilyCode='AIIM' then t.id end) 'AIIM',
 	count(distinct case when b.ProductSubFamilyCode in ('NEO', 'NEOSTICKS') then t.id end) 'NEO',
+	count(distinct case when b.FLAVORSEG_type3 = 'Fresh' then t.id end) 'Fresh',
+	count(distinct case when b.FLAVORSEG_type3 = 'New Taste' then t.id end) 'New Taste',
+	count(distinct case when b.FLAVORSEG_type3 = 'Regular' then t.id end) 'Regular',
 	count(distinct t.id) 'Comp HnB Purchasers'
 from  cu.agg_CU_TEREA_Total_Sourcing t
 	join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
@@ -284,6 +306,37 @@ group by
 	)
 ;
 
+-- Exclusive Taste ( 3개월 기간 / 현재 기간)
+with temp as (
+	select t.YYYYMM, 
+		gr_cd, 
+		t.id, 
+		min(b.FLAVORSEG_type3 ) + ' Only' FLAVORSEG_type3 
+	from cu.agg_CU_TEREA_Total_Sourcing t
+			join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
+			and a.YYYYMM = t.YYYYMM
+--			and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
+--					 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
+		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' and b.cigatype='HnB'
+		join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+	where t.YYYYMM >= '202401'
+	and b.company != 'PMK'
+	group by t.YYYYMM, gr_cd, t.id
+	having count(distinct b.FLAVORSEG_type3) = 1 
+)
+select  
+	YYYYMM, COALESCE(gr_cd, '합계') 'Gr Region',
+	count(distinct case when FLAVORSEG_type3 = 'Fresh Only' then id end) 'Fresh Only',
+	count(distinct case when FLAVORSEG_type3 = 'New Taste Only' then id end) 'New Taste Only',
+	count(distinct case when FLAVORSEG_type3 = 'Regular Only' then id end) 'Regular Only'
+from temp
+group by 
+	grouping sets ( 
+		(YYYYMM, gr_cd),
+		(YYYYMM)
+	)
+order by YYYYMM, 'Gr Region'
+;
 
 	
 ---	Gr.지역 별 sourcing 작업해주신 내용에서 current usage에서 cc인 경우 같이 사용하고 있는 cc family / subfamily / taste segment
@@ -330,3 +383,88 @@ group BY
 	)
 ;
 
+
+-- exclusive NTD taste purchaser / exclusive Regular taste purchaser / exclusive Fresh taste purchaser
+with temp as (
+	select t.YYYYMM, 
+		gr_cd, 
+		t.id, 
+		min(b.FLAVORSEG_type3 ) + ' Only' FLAVORSEG_type3 
+	from cu.agg_CU_TEREA_Total_Sourcing t
+			join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
+			and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
+					 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
+		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' and b.cigatype='CC'
+		join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+	where t.YYYYMM >= '202401'
+	group by t.YYYYMM, gr_cd, t.id
+	having count(distinct b.FLAVORSEG_type3) = 1 
+)
+select YYYYMM, COALESCE(gr_cd, '합계') 'Gr Region',
+	FLAVORSEG_type3 , 
+	count(id) n
+from temp
+group by 	
+	grouping sets (
+		(YYYYMM, gr_cd, FLAVORSEG_type3),
+		(YYYYMM, FLAVORSEG_type3)
+	)  
+order by YYYYMM, 'Gr Region'
+;
+
+-- 8,736
+	select t.YYYYMM, gr_cd, t.id, min(b.FLAVORSEG_type3 ) FLAVORSEG_type3 ,max(b.FLAVORSEG_type3 )
+	from cu.agg_CU_TEREA_Total_Sourcing t
+			join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
+			and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
+					 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
+		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' and b.cigatype='CC'
+		join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+	where t.YYYYMM >= '202401'
+	group by t.YYYYMM, gr_cd, t.id
+	having count(distinct b.FLAVORSEG_type3) = 1
+	;
+
+select *
+from cu.agg_CU_TEREA_Total_Sourcing t
+		join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
+		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
+				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' and b.cigatype='CC'
+	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+where t.id ='a9abf56b955b9581d08d4e180f34e9ef175d744e039bf2a18c93d515676a20c4'
+;
+
+select *
+from  cu.Fct_BGFR_PMI_Monthly  a
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' and b.cigatype='CC'
+where id ='3384ed735cd3f0aac8602cbb85bc7bb4dab707711018d13876d7cf71fe42c6d2'
+and YYYYMM >= '202310';
+
+
+
+with temp as (
+	select t.YYYYMM, 
+	gr_cd, 
+	t.id, 
+	max(b.FLAVORSEG_type3 ) + ' Only' FLAVORSEG_type3 
+	from cu.agg_CU_TEREA_Total_Sourcing t
+			join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
+			and a.YYYYMM = t.YYYYMM	
+		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' and b.cigatype='CC'
+		join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+	where t.YYYYMM >= '202401'
+	group by t.YYYYMM, gr_cd, t.id
+	having count(distinct b.FLAVORSEG_type3) = 1 
+)
+select YYYYMM, COALESCE(gr_cd, '합계') 'Gr Region',
+	FLAVORSEG_type3 , 
+	count(id) n
+from temp
+group by 	
+	grouping sets (
+		(YYYYMM, gr_cd, FLAVORSEG_type3),
+		(YYYYMM, FLAVORSEG_type3)
+	)  
+order by YYYYMM, 'Gr Region'
+;
