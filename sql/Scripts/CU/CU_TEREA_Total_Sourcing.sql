@@ -122,7 +122,8 @@ where
 		and t.id = x.id
 		and y.ProductSubFamilyCode = b.ProductSubFamilyCode   
 	)
-and b.ProductSubFamilyCode = 'TEREA'  
+and b.ProductSubFamilyCode = 'TEREA' 
+and t.YYYYMM = '202406'
 group by t.YYYYMM, t.id
 ;
 

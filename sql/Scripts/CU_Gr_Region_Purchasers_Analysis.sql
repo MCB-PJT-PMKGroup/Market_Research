@@ -78,10 +78,12 @@ group by
 select t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region', ProductSubFamilyCode,
 	count(distinct t.id) HnB_Purchaser 
 from ( 
-	select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, b.ProductSubFamilyCode, row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+	select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, case when ProductSubFamilyCode in ('NEO', 'NEOSTICKS') then 'NEO' else ProductSubFamilyCode end ProductSubFamilyCode,
+		row_number() over(partition by t.YYYYMM, t.id , (case when ProductSubFamilyCode in ('NEO', 'NEOSTICKS') then 'NEO' else ProductSubFamilyCode end ) order by a.seq desc) rn
 	from cu.v_user_3month_list t
 		join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
 		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype = 'HnB'
+			and ProductSubFamilyCode in ('NEO', 'NEOSTICKS')
 		join cu.dim_Regional_area c on a.SIDO_nm = c.sido_nm
 	where  t.YYYYMM = '202406'
 ) as t
@@ -162,11 +164,11 @@ with temp as(
 		sum(case when b.cigatype='CC' then a.SALE_QTY end) CC_Purchased,
 		sum(case when b.cigatype='HnB' and b.company = 'PMK' then a.SALE_QTY end) + sum(case when b.cigatype='CC' then a.SALE_QTY end) CompHnB_Purchased,
 		sum(case when b.cigatype='HnB' and b.company = 'PMK' then a.SALE_QTY end) / (sum(case when b.cigatype='HnB' and b.company = 'PMK' then a.SALE_QTY end) + sum(case when b.cigatype='CC' then a.SALE_QTY end)) *100 iqos_per,
-		sum(case when b.cigatype='CC' then a.SALE_QTY end) / (sum(case when b.cigatype='HnB' and b.company = 'PMK' then a.SALE_QTY end) + sum(case when b.cigatype='CC' then a.SALE_QTY end)) *100 cc_per
+		sum(case when b.cigatype='CC' then a.SALE_QTY end) / (sum(case when b.cigatype='HnB' and b.company = 'PMK' then a.SALE_QTY end) + sum(case when b.cigatype='CC' then a.SALE_QTY end)) * 100 cc_per
 	from  cu.agg_CU_TEREA_Total_Sourcing t
 		join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
-			and a.YYYYMM = t.YYYYMM
-		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
+			and a.YYYYMM = t.YYYYMM						-- current usage
+		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE = 'CIGARETTES' AND  b.cigatype != 'CSV' 
 		join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
 	where t.YYYYMM >= '202406'
 	group BY 	    	
@@ -193,6 +195,36 @@ group by
 
 	
 ---	(6월) 전체/Gr.지역별 total tobacco purchaser 연령/성별/Previous Category Usage (Past 3M – CC, HNB, DUAL)
+select t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region',
+	count(distinct t.id) total_Purchaser_cnt, 
+	count(case when gender ='1' then 1 end ) 'Male',
+	count(case when gender ='2' then 1 end ) 'Female',
+	count(case when age in ( '1','2') then 1 end) '20s',
+	count(case when age = '3' then 1 end) '30s',
+	count(case when age = '4' then 1 end) '40s',
+	count(case when age = '5' then 1 end) '50s',
+	count(case when age = '6' then 1 end) '60s'
+from ( 
+		select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, 	
+		a.gender,
+		a.age,
+		row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+		from cu.v_user_3month_list t
+			join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
+			join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype != 'CSV'
+			join cu.dim_Regional_area c on a.SIDO_nm = c.sido_nm
+		where  t.YYYYMM = '202406'
+	) as t
+where rn = 1
+group by
+	grouping sets ( 
+		(t.YYYYMM, gr_cd),
+		(t.YYYYMM )
+	)
+;
+
+
+-- Old
 with temp as (
 select
 	t.YYYYMM, 
@@ -231,6 +263,48 @@ group by
 
 
 -- Current Category Usage 
+
+with temp as (
+	select
+		YYYYMM, 
+		gr_cd,
+		id
+	from ( 
+		select t.YYYYMM, t.id, a.SIDO_NM , gr_cd,
+		row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+		from cu.v_user_3month_list t
+			join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
+			join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype != 'CSV'
+			join cu.dim_Regional_area c on a.SIDO_nm = c.sido_nm
+		where  t.YYYYMM = '202406'
+	) as t
+	where rn = 1
+)
+select t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region',
+	count(distinct case when cigatype ='CC' then t.id end ) 'CC',
+	count(distinct case when cigatype ='HnB' then t.id end ) 'HnB',
+	count(distinct case when cigatype ='Mixed' then t.id end ) 'Mixed'
+from 	
+	(select t.YYYYMM, t.gr_cd, t.id,
+		    CASE 
+		        WHEN SUM(CASE WHEN b.cigatype = 'CC' THEN 1 ELSE 0 END) > 0 
+		         AND SUM(CASE WHEN b.cigatype = 'HnB' THEN 1 ELSE 0 END) > 0 
+		        THEN 'Mixed' 
+		        ELSE MAX(b.cigatype)  -- CC 또는 HnB가 없을 경우 가장 큰 값을 사용
+	    	END AS cigatype
+	 from temp t
+		join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id and t.YYYYMM = a.YYYYMM 
+		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
+	group by t.YYYYMM, t.gr_cd, t.id
+) as t
+group by
+	grouping sets ( 
+		(t.YYYYMM, gr_cd),
+		(t.YYYYMM )
+	)
+;
+
+-- Old
 with temp as (
 	select
 		t.YYYYMM, 
@@ -370,6 +444,7 @@ with temp as (
 			join cu.dim_Regional_area c on a.SIDO_nm = c.sido_nm
 		where  t.YYYYMM = '202406'
 	) as t
+	where rn = 1
 )
 select t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region',
 	count(distinct case when cigatype ='CC' then t.id end ) 'CC',
@@ -444,6 +519,7 @@ with temp as (
 			join cu.dim_Regional_area c on a.SIDO_nm = c.sido_nm
 		where  t.YYYYMM = '202406'
 	) as t
+	where rn = 1
 )
 select t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region',
 	count(distinct case when cigatype ='CC' then t.id end ) 'CC',
@@ -467,7 +543,6 @@ group by
 		(t.YYYYMM, gr_cd),
 		(t.YYYYMM )
 	)
-;
 ;
 	
 	

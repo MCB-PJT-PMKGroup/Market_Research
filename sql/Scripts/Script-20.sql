@@ -157,30 +157,64 @@ having
    and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만
 ;
 
--- 905,797
--- HnB 127,037
--- CC 778,760
-select count(a.id)
-from cu.v_user_3month_list a
-	join cu.Fct_BGFR_PMI_Monthly b on a.id = b.id and a.seq = b.seq
-	join cu.dim_product_master c on b.ITEM_CD = c.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype = 'CC'
-where a.YYYYMM = '202406';
 
 
 
-select 
-	t.YYYYMM, 
-	a.SIDO_NM,
-	t.id,
-	a.gender,
-	a.age
-from cu.v_user_3month_list t
-	join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id and t.YYYYMM = a.YYYYMM and  t.seq = a.seq
-	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-where t.YYYYMM ='202406'
-;
 
-
+UPDATE a 
+SET FLAVORSEG_type3 = CASE 
+	        WHEN a.FLAVORSEG like 'FS1:%' THEN 'Regular'
+	        WHEN a.FLAVORSEG like 'FS2:%' THEN 'Fresh'
+	        WHEN a.FLAVORSEG like 'FS3:%' THEN 'Fresh'
+	        WHEN a.FLAVORSEG like 'FS4:%' THEN 'New Taste'
+	        WHEN a.FLAVORSEG like 'FS5:%' THEN 'Fresh'
+	        WHEN a.FLAVORSEG like 'FS7:%' THEN 'New Taste'
+	        WHEN a.FLAVORSEG like 'FS8:%' THEN 'New Taste'
+	        WHEN a.FLAVORSEG like 'FS9:%' THEN 'New Taste'
+	        WHEN a.FLAVORSEG like 'FS10:%' THEN 'New Taste'
+	        WHEN a.FLAVORSEG like 'FS11:%' THEN 'Fresh'
+	        WHEN a.FLAVORSEG like 'FS12:%' THEN 'Fresh'
+	        WHEN a.FLAVORSEG like 'FS13:%' THEN 'Fresh'
+	        WHEN a.FLAVORSEG like 'FS14:%' THEN 'New Taste'
+	        when a.FLAVORSEG like 'Aftercut (New%' then 'New Taste'
+	        when a.FLAVORSEG like 'Regular Fresh' then 'Fresh' 
+	        when a.FLAVORSEG like 'Regular to Fresh' then 'Fresh'
+			when a.FLAVORSEG like 'Regular to New Taste' then 'New Taste'
+			when a.FLAVORSEG like 'Fresh to New Taste' then 'New Taste'
+	        ELSE a.FLAVORSEG
+    	END ,
+		New_TARSEGMENTAT = CASE 
+	    	when a.TARSEGMENTAT like 'TS1:%' then 'FF'
+	    	when a.TARSEGMENTAT like 'TS2:%' then 'LTS'
+	    	when a.TARSEGMENTAT like 'TS3:%' then 'ULT'
+	    	when a.TARSEGMENTAT like 'TS4:%' then '1MG'
+	    	when a.TARSEGMENTAT like 'TS5:%' then 'Below 1MG'
+	    	else a.TARSEGMENTAT 
+	    END ,
+    	FLAVORSEG_type6 = CASE 
+		    WHEN a.FLAVORSEG like 'FS1:%' THEN 'Regular'
+		    WHEN a.FLAVORSEG like 'FS2:%' THEN 'Regular to Fresh'
+		    WHEN a.FLAVORSEG like 'FS3:%' THEN 'Regular to Fresh'
+		    WHEN a.FLAVORSEG like 'FS4:%' THEN 'Regular to New Taste'
+		    WHEN a.FLAVORSEG like 'FS5:%' THEN 'Fresh to Fresh'
+		    WHEN a.FLAVORSEG like 'FS7:%' THEN 'New Taste'
+		    WHEN a.FLAVORSEG like 'FS8:%' THEN 'Fresh to New Taste'
+		    WHEN a.FLAVORSEG like 'FS9:%' THEN 'Fresh to New Taste'
+		    WHEN a.FLAVORSEG like 'FS10:%' THEN 'Regular to New Taste'
+		    WHEN a.FLAVORSEG like 'FS11:%' THEN 'Fresh to Fresh'
+		    WHEN a.FLAVORSEG like 'FS12:%' THEN 'Regular to Fresh'
+		    WHEN a.FLAVORSEG like 'FS13:%' THEN 'Regular Fresh'
+		    WHEN a.FLAVORSEG like 'FS14:%' THEN 'New Taste'
+		    when a.FLAVORSEG like 'Aftercut (New%' then 'New Taste'
+		    when a.FLAVORSEG like 'Regular Fresh' then 'Regular Fresh' 
+		    when a.FLAVORSEG like 'Regular to Fresh' then 'Regular to Fresh'
+			when a.FLAVORSEG like 'Regular to New Taste' then 'Regular to New Taste'
+			when a.FLAVORSEG like 'Fresh to New Taste' then 'Fresh to New Taste'
+    	ELSE a.FLAVORSEG
+    	end 
+from cu.dim_product_master a
+where FLAVORSEG is not NULL
+and FLAVORSEG_type3 is null;
 
 
 
@@ -311,3 +345,5 @@ where  t.YYYYMM >= '202406'
 			and ProductSubFamilyCode  = 'TEREA'
 		join cu.dim_Regional_area c on a.SIDO_nm = c.sido_nm
 	where  t.YYYYMM = '202406';
+	
+

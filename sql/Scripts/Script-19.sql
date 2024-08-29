@@ -1,0 +1,260 @@
+with temp as (
+select * 
+from ( 
+	select t.YYYYMM, t.id, SIDO_NM ,
+--		row_number() over (partition by t.id order by t.YYYYMM) rn 
+		row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn 
+	from  cu.v_user_3month_list  t 
+	   join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
+	   join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype = 'HnB'
+	where 
+		not exists (
+			select 1
+		      from cu.Fct_BGFR_PMI_Monthly x
+		   		join cu.dim_product_master y on x.ITEM_CD = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
+			where
+		       x.YYYYMM < t.YYYYMM			-- 이전에 구매이력이 있으면 안됨. 최초 구매 월만
+			and t.id = x.id
+			and y.ProductSubFamilyCode = b.ProductSubFamilyCode   
+		)
+	and b.ProductSubFamilyCode = 'MIIX'
+) as t
+where rn = 1
+)
+select t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region',
+	count(distinct t.id) HnB_New_Purchasers,
+	sum(a.PACK_QTY) pack
+from temp t
+	join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype = 'HnB'
+		and b.ProductSubFamilyCode = 'MIIX'
+	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+where t.YYYYMM ='202406'
+group by
+	grouping sets ( 
+		(t.YYYYMM, gr_cd),
+		(t.YYYYMM)
+	)
+;
+
+
+with temp as (
+select * 
+from ( 
+	select t.YYYYMM, t.id, SIDO_NM ,
+--		row_number() over (partition by t.id order by t.YYYYMM) rn 
+		row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn 
+	from  cu.v_user_3month_list  t 
+	   join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
+	   join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype = 'HnB'
+	where 
+		not exists (
+			select 1
+		      from cu.Fct_BGFR_PMI_Monthly x
+		   		join cu.dim_product_master y on x.ITEM_CD = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
+			where
+		       x.YYYYMM < t.YYYYMM			-- 이전에 구매이력이 있으면 안됨. 최초 구매 월만
+			and t.id = x.id
+			and y.ProductSubFamilyCode = b.ProductSubFamilyCode   
+		)
+--	and b.ProductSubFamilyCode = 'MIIX'
+) as t
+where rn = 1
+)
+select t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region',
+	count(distinct t.id) HnB_New_Purchasers,
+	sum(a.PACK_QTY) pack
+from temp t
+	join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype = 'HnB'
+--		and b.ProductSubFamilyCode = 'MIIX'
+	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+where t.YYYYMM ='202406'
+group by
+	grouping sets ( 
+		(t.YYYYMM, gr_cd),
+		(t.YYYYMM)
+	)
+;
+
+
+
+select * from cu.v_user_3month_list ;
+
+with temp as ( 
+	select a.YYYYMM, a.id
+	from  cu.Fct_BGFR_PMI_Monthly a 
+		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+	where a.YYYYMM >= '202211'
+	and
+	   exists (
+	       -- (2) 직전 3개월 동안 구매이력이 있는지 확인
+	       select 1
+	       from cu.Fct_BGFR_PMI_Monthly x
+	       		join cu.dim_product_master y on x.ITEM_CD = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
+	       where
+	           x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
+	           				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
+	       and a.id = x.id
+	       group by x.YYYYMM, x.id
+		   having count(distinct y.engname) < 11 and sum(x.Pack_qty) < 61.0 -- (3) 구매 SKU 11종 미만 & 팩 수량 61개 미만
+	   )
+	group by a.YYYYMM, a.id 
+	having
+	       count(distinct b.engname) < 11 -- (3) SKU 11종 미만
+	   and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만;
+)
+select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, 	
+	a.gender,
+	a.age,
+	row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+from temp t
+	join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype != 'CSV'
+	join cu.dim_Regional_area c on a.SIDO_nm = c.sido_nm
+
+	
+	
+	
+
+select  t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region',
+	count(distinct t.id) Purchasers 
+from ( 
+	select t.YYYYMM, 
+		t.id, 
+		a.SIDO_NM , gr_cd, 	
+		a.gender,
+		a.age, 
+		row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+	from cu.v_user_3month_list t
+		join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
+		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype != 'CSV'
+		join cu.dim_Regional_area c on a.SIDO_NM = c.sido_nm
+	where a.YYYYMM = '202406'
+) as t
+where rn = 1
+group by YYYYMM, gr_cd
+;
+
+
+select t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region',
+	count(distinct t.id) total_Purchaser_cnt, 
+	count(case when gender ='1' then 1 end ) 'Male',
+	count(case when gender ='2' then 1 end ) 'Female',
+	count(case when age in ( '1','2') then 1 end) '20s',
+	count(case when age = '3' then 1 end) '30s',
+	count(case when age = '4' then 1 end) '40s',
+	count(case when age = '5' then 1 end) '50s',
+	count(case when age = '6' then 1 end) '60s'
+from ( 
+		select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, 	
+		a.gender,
+		a.age,
+		row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+		from cu.v_user_3month_list t
+			join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
+			join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype != 'CSV'
+			join cu.dim_Regional_area c on a.SIDO_nm = c.sido_nm
+		where  t.YYYYMM = '202406'
+	) as t
+where rn = 1
+group by
+	grouping sets ( 
+		(t.YYYYMM, gr_cd),
+		(t.YYYYMM )
+	)
+;
+
+
+select t.YYYYMM, sido_nm,
+	count(distinct t.id) total_Purchaser_cnt, 
+	count(case when gender ='1' then 1 end ) 'Male',
+	count(case when gender ='2' then 1 end ) 'Female',
+	count(case when age in ( '1','2') then 1 end) '20s',
+	count(case when age = '3' then 1 end) '30s',
+	count(case when age = '4' then 1 end) '40s',
+	count(case when age = '5' then 1 end) '50s',
+	count(case when age = '6' then 1 end) '60s'
+from ( 
+		select t.YYYYMM, t.id, a.SIDO_NM, 	
+		a.gender,
+		a.age,
+		row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+		from cu.v_user_3month_list t
+			join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
+			join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype != 'CSV'
+		where  t.YYYYMM = '202406'
+	) as t
+where rn = 1	-- 마지막 구매만 추출
+group by t.YYYYMM, sido_nm
+;
+
+
+
+
+--	Gr.지역 별 sourcing 작업해주신 내용에서 current usage에서 iqos only 인 경우의 terea taste segment, terea sku usage
+select *  
+from ( 
+		select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, FLAVORSEG_type3,
+		a.gender,
+		a.age,
+		row_number() over(partition by t.YYYYMM, t.id, b.FLAVORSEG_type3 order by a.seq desc) rn
+		from cu.agg_CU_TEREA_Total_Sourcing t
+			join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
+			join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+				and ProductSubFamilyCode = 'TEREA'
+			join cu.dim_Regional_area c on a.SIDO_nm = c.sido_nm
+		where  t.YYYYMM = '202406'
+	) as t
+where rn = 1	-- 마지막 구매만 추출
+;
+
+
+with temp as (
+select  
+	t.YYYYMM, 
+	gr_cd,
+	t.id,
+	max(case when b.cigatype='HnB' and b.company = 'PMK' then 1 else 0 end) IQOS_Purchased,
+	max(case when b.cigatype='CC' then 1 else 0 end) CC_Purchased,
+	max(case when b.cigatype='HnB' and b.company != 'PMK' then 1 else 0 end) CompHnB_Purchased
+from  cu.agg_CU_TEREA_Total_Sourcing t
+	join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
+		and a.YYYYMM = t.YYYYMM
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
+	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+where 1=1
+and t.YYYYMM >= '202401'
+group BY 	    	
+	t.YYYYMM, 
+	gr_cd,
+	t.id
+having 
+	 max(case when b.cigatype='HnB' and b.company = 'PMK' then 1 else 0 end)  > 0 
+	 and max(case when b.cigatype='CC' then 1 else 0 end) = 0 
+	 and max(case when b.cigatype='HnB' and b.company != 'PMK' then 1 else 0 end) = 0
+)
+select t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region',
+	count(distinct t.id) n
+from temp t
+	join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
+		and a.YYYYMM = t.YYYYMM
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
+		and 
+where 1=1 
+group by 
+	grouping sets ( 
+		(t.YYYYMM, gr_cd),
+		(t.YYYYMM )
+	)
+;
+
+
+--	Gr.지역 별 sourcing 작업해주신 내용에서 current usage에서 iqos+cc인 경우의 terea taste segment, terea sku usage
+
+
+
+
+
+
+
