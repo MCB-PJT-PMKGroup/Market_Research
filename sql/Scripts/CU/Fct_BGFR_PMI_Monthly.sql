@@ -30,6 +30,30 @@ include ( pack_qty, seq);
 ----;
 
 
+-- 원천 Raw Data
+CREATE TABLE BPDA.cu.BGFR_PMI_202302 (
+	YM_CD nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
+	SIDO_CD tinyint NULL,
+	SIDO_NM nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
+	CUST_ID nvarchar(100) COLLATE Korean_Wansung_CI_AS NULL,
+	GENDER_CD tinyint NULL,
+	AGE_CD tinyint NULL,
+	MCLASS_CD tinyint NULL,
+	MCLASS_NM nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
+	LCLASS_CD smallint NULL,
+	LCLASS_NM nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
+	ITEM_CD nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
+	ITEM_NM nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
+	NOW_SLPR int NULL,
+	SALE_QTY int NULL,
+	SALE_AMT int NULL,
+	SALE_CNT int NULL,
+	row_id nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL
+);
+
+-- 데이터 전처리
+-- Row_id 시작 : 2023010000001
+
 --insert into cu.Fct_BGFR_PMI_Monthly 
 --	(YYYYMM
 --  ,SIDO_CD
@@ -60,11 +84,11 @@ include ( pack_qty, seq);
 -- ;
 
 
---update a 
---set a.SIDO_NM = b.SIDO_NM 
---from cu.Fct_BGFR_PMI_Monthly a
---	join cu.BGFR_PMI_202406 b on a.SIDO_CD = b.SIDO_CD 
---where a.SIDO_NM is NULL ;
+update a 
+set a.price = b.now_splr , a.row_id = b.row_id
+from cu.Fct_BGFR_PMI_Monthly a
+	join cu.BGFR_PMI_202406 b on a.SIDO_CD = b.SIDO_CD and a.id = b.CUST_ID and a.YYYYMM = b.YM_CD and a.ITEM_CD = b.ITEM_CD
+where a.price is NULL ;
 
 
 

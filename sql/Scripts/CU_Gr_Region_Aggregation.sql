@@ -643,5 +643,131 @@ select * from cu.dim_product_master
 where 1=1 --ProductSubFamilyCode = 'TEREA'
 and FLAVORSEG is not null and FLAVORSEG_type3 is null;
 
---	Gr.지역 별 sourcing 작업해주신 내용에서 current usage에서 iqos+cc인 경우의 terea taste segment, terea sku usage
 
+
+--	# Gr.지역 별 sourcing 작업해주신 내용에서 current usage에서 iqos+cc인 경우의 terea taste segment, terea sku usage
+
+-- PiVot 진행 필요
+-- Terea Current Taste Segment
+with temp as (
+	select  
+		t.YYYYMM, 
+		gr_cd,
+		t.id,
+		max(case when b.cigatype='HnB' and b.company = 'PMK' then 1 else 0 end) IQOS_Purchased,
+		max(case when b.cigatype='CC' then 1 else 0 end) CC_Purchased,
+		max(case when b.cigatype='HnB' and b.company != 'PMK' then 1 else 0 end) CompHnB_Purchased
+	from  cu.agg_CU_TEREA_Total_Sourcing t
+		join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
+			and a.YYYYMM = t.YYYYMM
+		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
+		join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+	where 1=1
+	and t.YYYYMM >= '202401'
+	group BY 	    	
+		t.YYYYMM, 
+		gr_cd,
+		t.id
+	having 
+	--	IQOS + CC 조건만
+		 max(case when b.cigatype='HnB' and b.company = 'PMK' then 1 else 0 end)  > 0 
+		 and max(case when b.cigatype='CC' then 1 else 0 end) > 0 
+		 --and max(case when b.cigatype='HnB' and b.company != 'PMK' then 1 else 0 end) = 0
+)
+select t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region',
+	FLAVORSEG_type3,
+	count(distinct t.id) n
+from temp t
+	join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
+		and a.YYYYMM = t.YYYYMM
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
+		and ProductSubFamilyCode = 'TEREA'
+where 1=1 
+group by 
+	grouping sets ( 
+		(t.YYYYMM, gr_cd, FLAVORSEG_type3 ),
+		(t.YYYYMM, FLAVORSEG_type3 )
+	)
+;
+
+-- terea Current sku usage
+with temp as (
+	select  
+		t.YYYYMM, 
+		gr_cd,
+		t.id,
+		max(case when b.cigatype='HnB' and b.company = 'PMK' then 1 else 0 end) IQOS_Purchased,
+		max(case when b.cigatype='CC' then 1 else 0 end) CC_Purchased,
+		max(case when b.cigatype='HnB' and b.company != 'PMK' then 1 else 0 end) CompHnB_Purchased
+	from  cu.agg_CU_TEREA_Total_Sourcing t
+		join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
+			and a.YYYYMM = t.YYYYMM
+		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
+		join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+	where 1=1
+	and t.YYYYMM >= '202401'
+	group BY 	    	
+		t.YYYYMM, 
+		gr_cd,
+		t.id
+	having 
+	--	IQOS + CC 조건만
+		 max(case when b.cigatype='HnB' and b.company = 'PMK' then 1 else 0 end)  > 0 
+		 and max(case when b.cigatype='CC' then 1 else 0 end) > 0 
+		 --and max(case when b.cigatype='HnB' and b.company != 'PMK' then 1 else 0 end) = 0
+)
+select t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region',
+	engname,
+	count(distinct t.id) n
+from temp t
+	join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
+		and a.YYYYMM = t.YYYYMM
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
+		and ProductSubFamilyCode = 'TEREA'
+where 1=1 
+group by 
+	grouping sets ( 
+		(t.YYYYMM, gr_cd, engname ),
+		(t.YYYYMM, engname )
+	)
+;
+
+-- IQOS + CC Total
+with temp as (
+	select  
+		t.YYYYMM, 
+		gr_cd,
+		t.id,
+		max(case when b.cigatype='HnB' and b.company = 'PMK' then 1 else 0 end) IQOS_Purchased,
+		max(case when b.cigatype='CC' then 1 else 0 end) CC_Purchased,
+		max(case when b.cigatype='HnB' and b.company != 'PMK' then 1 else 0 end) CompHnB_Purchased
+	from  cu.agg_CU_TEREA_Total_Sourcing t
+		join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
+			and a.YYYYMM = t.YYYYMM
+		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
+		join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+	where 1=1
+	and t.YYYYMM >= '202401'
+	group BY 	    	
+		t.YYYYMM, 
+		gr_cd,
+		t.id
+	having 
+	--	IQOS + CC 조건만
+		 max(case when b.cigatype='HnB' and b.company = 'PMK' then 1 else 0 end) > 0 
+		 and max(case when b.cigatype='CC' then 1 else 0 end) > 0 
+		 --and max(case when b.cigatype='HnB' and b.company != 'PMK' then 1 else 0 end) = 0
+)
+select t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region',
+	count(distinct t.id) n
+from temp t
+	join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id 
+		and a.YYYYMM = t.YYYYMM
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
+		and ProductSubFamilyCode = 'TEREA'
+where 1=1 
+group by 
+	grouping sets ( 
+		(t.YYYYMM, gr_cd ),
+		(t.YYYYMM )
+	)
