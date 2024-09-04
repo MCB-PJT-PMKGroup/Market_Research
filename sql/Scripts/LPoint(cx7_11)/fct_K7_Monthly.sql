@@ -16,7 +16,13 @@ CREATE TABLE BPDA.cx.fct_K7_Monthly (
 	rct_seq varchar(100) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	CONSTRAINT pk_fct_k7_Monthly_id_product_code PRIMARY KEY (id,product_code,YYYYMM,rct_seq)
 );
+
+DROP INDEX ix_fct_K7_Monthly_product_code ON BPDA.cx.fct_K7_Monthly;
  
+CREATE NONCLUSTERED INDEX ix_fct_K7_Monthly_product_code
+ON cx.fct_K7_Monthly ( product_code, YYYYMM )
+include ( pack_qty);
+
 -- 1,089,136 rows
 insert into cx.fct_K7_Monthly 
 select 

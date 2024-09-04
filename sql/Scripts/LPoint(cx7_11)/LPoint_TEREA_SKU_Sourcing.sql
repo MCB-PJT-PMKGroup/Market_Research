@@ -12,12 +12,12 @@ where ProductSubFamilyCode='TEREA';
 --06023937FF899343155F00F8EAF2C763206D68AD6517324A4B05BC0BAB484967
 
 
-   select  YYYYMM , id, max(seq) seq, row_number() over (partition by id order by YYYYMM) rn  
+   select  YYYYMM , id, row_number() over (partition by id order by YYYYMM) rn  
    from
        cx.fct_K7_Monthly a
        join cx.product_master b on a.Product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-   where id ='016B0252CBECDD3C54445431FC2CA44FAAFBD37746B4D3088A4C186ED80854E2' 
-   and b.ProductSubFamilyCode = 'TEREA' and engname ='TEREA ARBOR PEARL'
+   where 1=1 --id ='016B0252CBECDD3C54445431FC2CA44FAAFBD37746B4D3088A4C186ED80854E2' 
+   and b.ProductSubFamilyCode = 'TEREA' and engname ='TEREA STARLING PEARL'
    group by YYYYMM , a.id
 ;
 
@@ -30,12 +30,12 @@ where id ='016B0252CBECDD3C54445431FC2CA44FAAFBD37746B4D3088A4C186ED80854E2'
 with temp as( 
 select * 
 from ( -- (1) 최초 구매이력이 있는지 확인, 동월에 다른 지역에 구매한 케이스 마지막 구매일로 지정 
-   select  YYYYMM , id, max(seq) seq, row_number() over (partition by id order by YYYYMM) rn  
+   select  YYYYMM , id,  row_number() over (partition by id order by YYYYMM) rn  
    from
        cx.fct_K7_Monthly a
        join cx.product_master b on a.Product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
    where 1=1 --id ='016B0252CBECDD3C54445431FC2CA44FAAFBD37746B4D3088A4C186ED80854E2' 
-   and b.ProductSubFamilyCode = 'TEREA' and engname ='TEREA ARBOR PEARL'
+   and b.ProductSubFamilyCode = 'TEREA' and engname ='TEREA STARLING PEARL'
    group by YYYYMM , a.id
 ) as t
 where rn = 1
@@ -45,7 +45,7 @@ select t.YYYYMM, t.id,
 from temp t
 	join cx.fct_K7_Monthly a on a.id = t.id  and  a.YYYYMM = t.YYYYMM
 	join cx.product_master b on a.Product_code = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-where t.YYYYMM >= '202211'
+where t.YYYYMM >= '202407'
 and
    exists (
        -- (2) 직전 3개월 동안 구매이력이 있는지 확인
@@ -114,7 +114,7 @@ order by de_dt;
 --TEREA YUGEN				4,729
 
 
--- CU sourcing_M1 모수 테이블
+-- L Point sourcing_M1 모수 테이블
 with temp as( 
 select * 
 from ( 
@@ -123,7 +123,7 @@ from (
        cx.fct_K7_Monthly a
        join cx.product_master b on a.Product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
    where 1=1
-   and b.ProductSubFamilyCode = 'TEREA' and engname = 'TEREA YUGEN'
+   and b.ProductSubFamilyCode = 'TEREA' and  engname ='TEREA AMBER'
    group by YYYYMM , a.id
 ) as t
 where rn = 1
@@ -134,7 +134,7 @@ TEREA_Purchasers as (
 	from temp t
 		join cx.fct_K7_Monthly a on a.id = t.id  and  a.YYYYMM = t.YYYYMM
 		join cx.product_master b on a.Product_code = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-	where t.YYYYMM >= '202211'
+	where t.YYYYMM = '202407'
 	and
 	   exists (
 	       -- (2) 직전 3개월 동안 구매이력이 있는지 확인
@@ -276,7 +276,8 @@ from cx.agg_LPoint_TEREA_SKU_Sourcing
 group by id ,engname 
 having count(*) > 1;
 
-select count(*) from cx.agg_LPoint_TEREA_SKU_Sourcing ;
+delete from cx.agg_LPoint_TEREA_SKU_Sourcing
+where YYYYMM = '202407';
 
 
 

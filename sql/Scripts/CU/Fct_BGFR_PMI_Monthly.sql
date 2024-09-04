@@ -77,6 +77,7 @@ CREATE TABLE BPDA.cu.BGFR_PMI_202302 (
 --from cu.BGFR_PMI_202301 a
 --	left join cu.dim_CU_master b on a.ITEM_CD = b.PROD_ID ;
 
+
 -- update cu.Fct_BGFR_PMI_Monthly
 -- set PACK_QTY = a.SALE_QTY * b.SAL_QNT 
 -- from cu.Fct_BGFR_PMI_Monthly a
@@ -84,8 +85,9 @@ CREATE TABLE BPDA.cu.BGFR_PMI_202302 (
 -- ;
 
 
+
 update a 
-set a.price = b.now_splr , a.row_id = b.row_id
+set a.price = b.NOW_SLPR , a.row_id = b.row_id
 from cu.Fct_BGFR_PMI_Monthly a
 	join cu.BGFR_PMI_202406 b on a.SIDO_CD = b.SIDO_CD and a.id = b.CUST_ID and a.YYYYMM = b.YM_CD and a.ITEM_CD = b.ITEM_CD
 where a.price is NULL ;

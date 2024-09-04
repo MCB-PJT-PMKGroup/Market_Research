@@ -258,3 +258,13 @@ group by
 
 
 
+
+select ym_cd, SIDO_CD , cust_id, item_cd
+from cu.BGFR_PMI_202407 
+group by ym_cd, SIDO_CD , cust_id, item_cd
+having count(*) >1;
+
+select * from cu.Fct_BGFR_PMI_Monthly 
+where YYYYMM ='202301';
+
+

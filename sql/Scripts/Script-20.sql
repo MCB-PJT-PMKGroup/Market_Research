@@ -347,3 +347,83 @@ where  t.YYYYMM >= '202406'
 	where  t.YYYYMM = '202406';
 	
 
+
+
+select max(row_id) row_id from cu.BGFR_PMI_202407;
+--202301 1637029
+--202302 1567616
+--202303 1737333
+--202304 1734126
+--202305 1816764
+--202306 1791262
+--202307 1801693
+--202308 1806478
+--202309 1819937
+--202310 1797934
+--202311 1669557
+--202312 1672828
+--202401 1637875
+--202402 1624032
+--202403 1727622
+--202404 1773180
+--202405 1821034
+--202406 1809086
+--202407 1806190
+
+
+
+
+-- 직전 3개월 구매이력이 있는 구매자
+-- 내 결과는 4,240,360 건
+-- user_3month_list CSV는 6,270,511 rows
+
+
+select count(*)
+from ( 
+select a.YYYYMM,  a.id
+from  cx.fct_K7_Monthly a 
+	join cx.product_master b on a.product_code = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+where a.YYYYMM >= '202211'
+and
+   exists (
+       -- (2) 직전 3개월 동안 구매이력이 있는지 확인
+       select 1
+       from cx.fct_K7_Monthly x
+       	join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
+       where
+           x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
+           				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
+       and a.id = x.id
+       group by x.YYYYMM, x.id
+	       	   having
+	       count(distinct y.engname) < 11 -- (3) SKU 11종 미만
+	       and sum(x.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만
+   )
+group by a.YYYYMM, a.id
+having
+       count(distinct b.engname) < 11 -- (3) SKU 11종 미만
+   and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만
+)as t
+
+;
+
+select count(*) from cu.v_user_3month_list ;
+--14,724,007 rows CU 3개월 이력
+-- CSV는 13,273,204 rows 차이가 있네..
+
+
+
+select * 
+from cx.fct_K7_Monthly a
+where YYYYMM ='202407'
+and Pack_qty is null
+and product_code in (select prod_id from cx.product_master where  CIGADEVICE = 'CIGARETTES' and cigatype != 'CSV' )
+;
+
+
+
+
+CREATE NONCLUSTERED INDEX ix_fct_K7_Monthly_product_code
+ON cx.fct_K7_Monthly ( YYYYMM, product_code)
+include ( pack_qty);
+
