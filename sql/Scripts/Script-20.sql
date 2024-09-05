@@ -338,6 +338,9 @@ where  t.YYYYMM >= '202406'
 
 
 
+
+
+
 	select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, b.ProductSubFamilyCode, row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
 	from cu.v_user_3month_list t
 		join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
@@ -421,9 +424,90 @@ and product_code in (select prod_id from cx.product_master where  CIGADEVICE = '
 ;
 
 
+select * --count(*)
+from cu.Fct_BGFR_PMI_Monthly a
+	join cu.BGFR_PMI_202301 b on a.YYYYMM = b.YM_CD and a.SIDO_CD = b.SIDO_CD and a.id = b.CUST_ID  and a.ITEM_CD = b.ITEM_CD 
+;
+
+select * from cu.Fct_BGFR_PMI_Monthly
+where price is null;
 
 
-CREATE NONCLUSTERED INDEX ix_fct_K7_Monthly_product_code
-ON cx.fct_K7_Monthly ( YYYYMM, product_code)
-include ( pack_qty);
+drop INDEX ix_Fct_BGFR_PMI_Monthly_ITEM_CD on cu.Fct_BGFR_PMI_Monthly ;
+----
+
+CREATE NONCLUSTERED INDEX ix_Fct_BGFR_PMI_Monthly_ITEM_CD
+ON [cu].[Fct_BGFR_PMI_Monthly] ( ITEM_CD, YYYYMM)
+include ( pack_qty, row_id);
+
+
+
+drop view cu.v_user_3month_list;
+
+create view cu.v_user_3month_list as
+
+
+
+select a.YYYYMM, a.id
+from  cu.Fct_BGFR_PMI_Monthly a --with (index(Fct_BGFR_PMI_Monthly_PK))
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+where a.YYYYMM >= '202211'
+and
+   exists (
+       -- (2) 직전 3개월 동안 구매이력이 있는지 확인
+       select 1
+       from cu.Fct_BGFR_PMI_Monthly x --with (index(Fct_BGFR_PMI_Monthly_PK))
+       		join cu.dim_product_master y on x.ITEM_CD = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
+       where
+	       a.id = x.id
+       and x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
+           				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
+       group by x.id, x.YYYYMM
+	   having count(distinct y.engname) < 11 and sum(x.Pack_qty) < 61.0 -- (3) 구매 SKU 11종 미만 & 팩 수량 61개 미만
+   )
+group by a.id, a.YYYYMM
+having
+       count(distinct b.engname) < 11 -- (3) SKU 11종 미만
+   and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만
+;
+;
+
+select * from cu.v_user_3month_list;
+
+
+WITH PurchaseHistory AS (
+   SELECT
+       x.id,
+       x.YYYYMM
+   FROM cu.Fct_BGFR_PMI_Monthly x
+   JOIN cu.dim_product_master y
+       ON x.ITEM_CD = y.PROD_ID
+       AND y.CIGADEVICE = 'CIGARETTES'
+       AND y.cigatype != 'CSV'
+   -- 여기서 CTE 내의 조건으로 필터링
+   GROUP BY
+       x.id, x.YYYYMM
+   HAVING
+       COUNT(DISTINCT y.engname) < 11
+       AND SUM(x.Pack_qty) < 61.0
+)
+SELECT
+   a.YYYYMM,
+	a.id
+FROM cu.Fct_BGFR_PMI_Monthly a
+JOIN cu.dim_product_master b
+   ON a.ITEM_CD = b.PROD_ID
+   AND b.CIGADEVICE = 'CIGARETTES'
+   AND b.cigatype != 'CSV'
+-- 이 부분에서 PurchaseHistory를 필터링하는 조건 추가
+JOIN PurchaseHistory ph ON a.id = ph.id
+   AND a.YYYYMM >= '202407'
+   AND ph.YYYYMM BETWEEN
+       CONVERT(nvarchar(6), DATEADD(month, -3, a.YYYYMM + '01'), 112)
+       AND CONVERT(nvarchar(6), DATEADD(month, -1, a.YYYYMM + '01'), 112)
+GROUP BY
+  a.id, a.YYYYMM
+HAVING
+   COUNT(DISTINCT b.engname) < 11
+   AND SUM(a.Pack_qty) < 61.0;
 

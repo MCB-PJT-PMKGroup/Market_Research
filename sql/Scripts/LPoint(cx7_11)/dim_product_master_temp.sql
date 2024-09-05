@@ -2,8 +2,6 @@
 -- CC, HnB
 
 
-
-
 -- Taste Column : FLAVORSEG
 --FS1: Regular						: Regular
 --FS2: Regular Fresh				: Fresh
@@ -20,8 +18,6 @@
 --FS14: NTD (Aftercut)				: New Taste
 
 
-
-
 --Regular
 
 -- Tar : TARSEGMENTAT 
@@ -35,7 +31,13 @@
 -- Rows: 14,342,077
 
 
-CREATE TABLE BPDA.cx.product_master_temp (
+-- BPDA.cx.product_master definition
+
+-- Drop table
+
+-- DROP TABLE BPDA.cx.product_master;
+
+CREATE TABLE BPDA.cx.product_master (
 	PROD_ID varchar(255) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	ENGNAME varchar(255) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	ProductDescription varchar(MAX) COLLATE Korean_Wansung_CI_AS NULL,
@@ -57,12 +59,12 @@ CREATE TABLE BPDA.cx.product_master_temp (
 	MKTD_BRDCODE varchar(MAX) COLLATE Korean_Wansung_CI_AS NULL,
 	SMARTSRCCode varchar(MAX) COLLATE Korean_Wansung_CI_AS NULL,
 	[check] varchar(MAX) COLLATE Korean_Wansung_CI_AS NULL,
-	New_FLAVORSEG varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
+	FLAVORSEG_type3 varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	New_TARSEGMENTAT varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	FLAVORSEG_type6 varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	CONSTRAINT product_master_temp_pk PRIMARY KEY (PROD_ID)
 );
- CREATE NONCLUSTERED INDEX product_master_temp_CIGADEVICE_IDX ON cx.product_master_temp (  CIGADEVICE ASC  , CIGATYPE ASC  , ProductFamilyCode ASC  , Company ASC  , ENGNAME ASC  )  
+ CREATE NONCLUSTERED INDEX product_master_temp_CIGADEVICE_IDX ON cx.product_master (  CIGADEVICE ASC  , CIGATYPE ASC  , ProductFamilyCode ASC  , Company ASC  , ENGNAME ASC  )  
 	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
 	 ON [PRIMARY ] ;
 

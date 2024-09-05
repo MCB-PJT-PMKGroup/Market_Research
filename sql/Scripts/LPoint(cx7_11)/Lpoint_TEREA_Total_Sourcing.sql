@@ -296,7 +296,6 @@ having count(*) > 1;
 
 
 
-
 -- 엑셀 시트 데이터 반영 작업
 --into cx.agg_LPoint_TEREA_Total_Sourcing
 --into cx.agg_LPoint_MIIX_Total_Sourcing

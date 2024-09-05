@@ -14,6 +14,8 @@ CREATE TABLE BPDA.cu.Fct_BGFR_PMI_Monthly (
 	PACK_QTY float NULL,
 	seq int IDENTITY(1,1) NOT NULL,
 	SIDO_NM varchar(50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	price int NULL,
+	row_id varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	CONSTRAINT Fct_BGFR_PMI_Monthly_PK PRIMARY KEY (id,ITEM_CD,YYYYMM,SIDO_NM)
 );
 
@@ -54,28 +56,32 @@ CREATE TABLE BPDA.cu.BGFR_PMI_202302 (
 -- 데이터 전처리
 -- Row_id 시작 : 2023010000001
 
---insert into cu.Fct_BGFR_PMI_Monthly 
---	(YYYYMM
---  ,SIDO_CD
---	,SIDO_NM
---	,id
---	,GENDER_CD
---	,AGE_CD
---	,ITEM_CD
---	,SALE_QTY
---	,PACK_QTY
---	)
---select YM_CD
---,SIDO_CD
---,SIDO_NM
---,CUST_ID
---,GENDER_CD
---,AGE_CD
---,ITEM_CD
---,SALE_QTY
---, round(a.SALE_QTY * b.SAL_QNT, 2)  PACK_QTY
---from cu.BGFR_PMI_202301 a
---	left join cu.dim_CU_master b on a.ITEM_CD = b.PROD_ID ;
+insert into cu.Fct_BGFR_PMI_Monthly 
+		(YYYYMM
+	  	,SIDO_CD
+		,SIDO_NM
+		,id
+		,GENDER
+		,AGE
+		,ITEM_CD
+		,SALE_QTY
+		,PACK_QTY
+		, price 
+		, row_id
+		)
+select YM_CD
+	,SIDO_CD
+	,SIDO_NM
+	,CUST_ID
+	,GENDER_CD
+	,AGE_CD
+	,ITEM_CD
+	,SALE_QTY
+	, round(a.SALE_QTY * b.SAL_QNT, 2)  PACK_QTY
+	, NOW_SLPR 
+	, row_id
+from cu.BGFR_PMI_202407 a
+	left join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID ;
 
 
 -- update cu.Fct_BGFR_PMI_Monthly
@@ -85,12 +91,13 @@ CREATE TABLE BPDA.cu.BGFR_PMI_202302 (
 -- ;
 
 
-
+-- 가격, row ID 업데이트
 update a 
 set a.price = b.NOW_SLPR , a.row_id = b.row_id
 from cu.Fct_BGFR_PMI_Monthly a
-	join cu.BGFR_PMI_202406 b on a.SIDO_CD = b.SIDO_CD and a.id = b.CUST_ID and a.YYYYMM = b.YM_CD and a.ITEM_CD = b.ITEM_CD
-where a.price is NULL ;
+	join cu.BGFR_PMI_202301 b on a.id = b.CUST_ID and a.ITEM_CD = b.ITEM_CD and  a.YYYYMM = b.YM_CD and a.SIDO_CD = b.SIDO_CD
+where a.row_id is NULL 
+;
 
 
 
@@ -112,3 +119,4 @@ where a.price is NULL ;
 --202404 1,773,180
 --202405 1,821,034
 --202406 1,809,086
+--202407 1,806,190

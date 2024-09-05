@@ -15,7 +15,7 @@ where CIGATYPE != 'CSV';
 select  t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region',
 	count(distinct t.id) Tobacco_Purchaser 
 from ( 
-	select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+	select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, row_number() over(partition by t.YYYYMM, t.id order by a.row_id desc) rn
 	from cu.v_user_3month_list t
 		join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
 		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype != 'CSV'
@@ -35,7 +35,7 @@ group by
 select  t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region',
 	count(distinct t.id) Tobacco_Purchaser 
 from ( 
-	select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+	select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, row_number() over(partition by t.YYYYMM, t.id order by a.row_id desc) rn
 	from cu.v_user_3month_list t
 		join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
 		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype = 'CC'
@@ -58,7 +58,7 @@ group by
 select t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region', ProductFamilyCode,
 	count(distinct t.id) CC_Purchaser 
 from ( 
-	select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, b.ProductFamilyCode, row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+	select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, b.ProductFamilyCode, row_number() over(partition by t.YYYYMM, t.id order by a.row_id desc) rn
 	from cu.v_user_3month_list t
 		join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
 		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype = 'CC'
@@ -79,7 +79,7 @@ select t.YYYYMM, COALESCE(gr_cd, '합계')  'Gr Region', ProductSubFamilyCode,
 	count(distinct t.id) HnB_Purchaser 
 from ( 
 	select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, case when ProductSubFamilyCode in ('NEO', 'NEOSTICKS') then 'NEO' else ProductSubFamilyCode end ProductSubFamilyCode,
-		row_number() over(partition by t.YYYYMM, t.id , (case when ProductSubFamilyCode in ('NEO', 'NEOSTICKS') then 'NEO' else ProductSubFamilyCode end ) order by a.seq desc) rn
+		row_number() over(partition by t.YYYYMM, t.id , (case when ProductSubFamilyCode in ('NEO', 'NEOSTICKS') then 'NEO' else ProductSubFamilyCode end ) order by a.row_id desc) rn
 	from cu.v_user_3month_list t
 		join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
 		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype = 'HnB'
@@ -208,7 +208,7 @@ from (
 		select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, 	
 		a.gender,
 		a.age,
-		row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+		row_number() over(partition by t.YYYYMM, t.id order by a.row_id desc) rn
 		from cu.v_user_3month_list t
 			join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
 			join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype != 'CSV'
@@ -233,7 +233,7 @@ select
 	a.gender,
 	a.age
 from cu.v_user_3month_list t
-	join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id and t.YYYYMM = a.YYYYMM and  t.seq = a.seq
+	join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id and t.YYYYMM = a.YYYYMM and  t.row_id = a.row_id
 	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
 where t.YYYYMM = '202406'
 )
@@ -271,7 +271,7 @@ with temp as (
 		id
 	from ( 
 		select t.YYYYMM, t.id, a.SIDO_NM , gr_cd,
-		row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+		row_number() over(partition by t.YYYYMM, t.id order by a.row_id desc) rn
 		from cu.v_user_3month_list t
 			join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
 			join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype != 'CSV'
@@ -311,7 +311,7 @@ with temp as (
 		a.SIDO_NM,
 		t.id
 	from cu.v_user_3month_list t
-		join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id and t.YYYYMM = a.YYYYMM and  t.seq = a.seq
+		join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id and t.YYYYMM = a.YYYYMM and  t.row_id = a.row_id
 		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
 	where t.YYYYMM = '202406'
 ),
@@ -370,7 +370,7 @@ from (
 		select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, 	
 		a.gender,
 		a.age,
-		row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+		row_number() over(partition by t.YYYYMM, t.id order by a.row_id desc) rn
 		from cu.v_user_3month_list t
 			join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
 			join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype = 'HnB'
@@ -396,7 +396,7 @@ with temp as (
 		a.SIDO_NM,
 		t.id
 	from cu.v_user_3month_list t
-		join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id and t.YYYYMM = a.YYYYMM and  t.seq = a.seq
+		join cu.Fct_BGFR_PMI_Monthly a on t.id = a.id and t.YYYYMM = a.YYYYMM and  t.row_id = a.row_id
 		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
 			and b.productSubFamilyCode = 'TEREA'
 	where t.YYYYMM = '202406'
@@ -436,7 +436,7 @@ with temp as (
 		id
 	from ( 
 		select t.YYYYMM, t.id, a.SIDO_NM , gr_cd,
-		row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+		row_number() over(partition by t.YYYYMM, t.id order by a.row_id desc) rn
 		from cu.v_user_3month_list t
 			join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
 			join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype = 'HnB'
@@ -487,7 +487,7 @@ from (
 		select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, 	
 		a.gender,
 		a.age,
-		row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+		row_number() over(partition by t.YYYYMM, t.id order by a.row_id desc) rn
 		from cu.v_user_3month_list t
 			join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
 			join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype = 'HnB'
@@ -511,7 +511,7 @@ with temp as (
 		id
 	from ( 
 		select t.YYYYMM, t.id, a.SIDO_NM , gr_cd,
-		row_number() over(partition by t.YYYYMM, t.id order by a.seq desc) rn
+		row_number() over(partition by t.YYYYMM, t.id order by a.row_id desc) rn
 		from cu.v_user_3month_list t
 			join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
 			join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype = 'HnB'

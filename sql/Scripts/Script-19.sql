@@ -268,3 +268,17 @@ select * from cu.Fct_BGFR_PMI_Monthly
 where YYYYMM ='202301';
 
 
+select yyyymm, count(*)
+from cx.v_user_3month_list 
+group by yyyymm;
+
+
+select yyyymm, count(*)
+from cx.seven11_user_3month_list 
+group by yyyymm;
+
+
+select * from cx.product_master
+where 1=1-- [check] = 'new'
+and cigatype ='CC'
+and FLAVORSEG_type3 ='New Taste';

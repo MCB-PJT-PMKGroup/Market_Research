@@ -12,7 +12,7 @@ select *
 from ( 
 	select t.YYYYMM, t.id, SIDO_NM ,
 --		row_number() over (partition by t.id order by t.YYYYMM) rn 
-		row_number() over(partition by t.YYYYMM, t.id  order by a.seq desc) rn 
+		row_number() over(partition by t.YYYYMM, t.id  order by a.row_id desc) rn 
 	from  cu.v_user_3month_list  t 
 	   join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
 	   join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype = 'HnB'
@@ -68,7 +68,7 @@ with temp as (
 select * 
 from ( 
 	select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, 
-	row_number() over(partition by t.YYYYMM, t.id  order by a.seq desc) rn
+	row_number() over(partition by t.YYYYMM, t.id  order by a.row_id desc) rn
 	from cu.v_user_3month_list t
 		join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
 		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE = 'CIGARETTES' and cigatype ='HnB'
@@ -97,7 +97,7 @@ with temp as (
 select * 
 from ( 
 	select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, 
-	row_number() over(partition by t.YYYYMM, t.id , ProductSubFamilyCode order by a.seq desc) rn
+	row_number() over(partition by t.YYYYMM, t.id , ProductSubFamilyCode order by a.row_id desc) rn
 	from cu.v_user_3month_list t
 		join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
 		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype ='HnB'
@@ -131,7 +131,7 @@ with temp as (
 select * 
 from ( 
 	select t.YYYYMM, t.id, a.SIDO_NM , gr_cd, 
-	row_number() over(partition by t.YYYYMM, t.id , ProductSubFamilyCode order by a.seq desc) rn
+	row_number() over(partition by t.YYYYMM, t.id , ProductSubFamilyCode order by a.row_id desc) rn
 	from cu.v_user_3month_list t
 		join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
 		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and CIGADEVICE = 'CIGARETTES' and cigatype ='HnB'
