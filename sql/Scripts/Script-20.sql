@@ -511,3 +511,14 @@ HAVING
    COUNT(DISTINCT b.engname) < 11
    AND SUM(a.Pack_qty) < 61.0;
 
+
+;
+
+select yyyymm, count(distinct id)
+from cx.fct_K7_Monthly 
+group by YYYYMM;
+
+
+select count(*)
+from 
+

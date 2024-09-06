@@ -38,18 +38,18 @@ and YM_CD = '202301';
 
 -- 구매자별 최초 구매월, 마지막 구매월 및 기간동안 방문 횟수
 SELECT 
-	CUST_ID,
-	sum(count(cust_id)) over(PARTITION by cust_id) as visit_cnt,
+	id,
+	sum(count(id)) over(PARTITION by id) as visit_cnt,
 	sum(purchase_cnt) as monthly_buy_CC_cnt,
-	min(YM_CD) 'first_visit', 
-	max(YM_CD) 'last_vist'
+	min(yyyymm) 'first_visit', 
+	max(yyyymm) 'last_vist'
 FROM  (
 	select 
-		CUST_ID, YM_CD, count(*) as purchase_cnt
+		id, yyyymm, count(*) as purchase_cnt
 	FROM  cu.Fct_BGFR_PMI_Monthly
-	GROUP BY CUST_ID, YM_CD
+	GROUP BY id, yyyymm
 ) as a
-GROUP BY CUST_ID
+GROUP BY id
 ;
 
 

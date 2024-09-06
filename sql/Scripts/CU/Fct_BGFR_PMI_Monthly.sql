@@ -25,10 +25,11 @@ update statistics cu.fct_BGFR_PMI_Monthly;
 -- update statistics cx.fct_k7_monthly;
 
 drop INDEX ix_Fct_BGFR_PMI_Monthly_ITEM_CD on cu.Fct_BGFR_PMI_Monthly ;
-----
+
 CREATE NONCLUSTERED INDEX ix_Fct_BGFR_PMI_Monthly_ITEM_CD
-ON [cu].[Fct_BGFR_PMI_Monthly] ( item_cd, YYYYMM)
-include ( pack_qty, seq);
+ON [cu].[Fct_BGFR_PMI_Monthly] ( ITEM_CD, YYYYMM)
+include ( pack_qty, row_id);
+
 ----;
 
 

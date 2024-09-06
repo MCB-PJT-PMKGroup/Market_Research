@@ -196,3 +196,54 @@ from cx.product_master a
 where FLAVORSEG is not NULL
 and FLAVORSEG_type3 is null;
 
+
+
+
+
+
+-- NPL (New Product Launch) 최신 제품 데이터 추가 작업 45 rows
+--update a 
+--set NPL_YN = 'Y'
+--from cx.product_master a
+--where engname in ('BOHEM CIGAR CARIBE',
+--'BOHEM CIGAR ICE FIT',
+--'BOHEM MINI ROAST KS RCB 20 SSL',
+--'BOHEM PIPE BRITON',
+--'ESSE CHANGE COOLIPS',
+--'ESSE CHANGE DOUBLE',
+--'ESSE CHANGE GRAM 100 DHX 20 SSL',
+--'ESSE CHANGE ICEFALL 120 DSP 20 MSL',
+--'ESSE CHANGE SHOOTING RED',
+--'ESSE Himalaya Winter',
+--'ESSE ITS DEEP BROWN',
+--'RAISON FRENCH ICE BLAN',
+--'RAISON FRENCH SSOM',
+--'RAISON IONIA AQUA GREEN',
+--'RAISON IONIA ISLAND PINK',
+--'RAISON RESERVE',
+--'THIS AFRICA HAI HAI',
+--'Marlboro Vista Blossom Mist',
+--'Marlboro Vista Forest Mist',
+--'Marlboro Vista Summer Splash',
+--'Marlboro Vista Tropical Breeze',
+--'Marlboro Vista Tropical Splash',
+--'Parliament Double Wave',
+--'DUNHILL ALPS BOOST',
+--'Dunhill Electric Crush',
+--'DUNHILL EXOTIC CRUSH',
+--'DUNHILL FINECUT RAINBOW BOOST',
+--'DUNHILL GREEN BOOST MNT 100 BOX 20 SSL',
+--'DUNHILL LIT ZEPHYR MNT KS OCT 20',
+--'DUNHILL RUBY BOOST',
+--'Dunhill Smooth Crush',
+--'MEVIUS CITRO WAVE',
+--'MEVIUS LBS 2.0 ICE FIZZ 100 DSP 20 SSL',
+--'MEVIUS LBS 2.0 MAX YELLOW',
+--'MEVIUS LBS 2.0 MAX YELLOW SS',
+--'MEVIUS LBS 2.0 SUNSET BEACH KS RCB 20',
+--'MEVIUS LBS BANA SSL',
+--'MEVIUS LBS LONG ISLAND',
+--'MEVIUS LBS SPARKLING DEW',
+--'MEVIUS LBS TROPICAL MIX 3mg',
+--'Marlboro Vista Garden Splash',
+--'Raison Hyvaa Ice Tundra')
