@@ -282,3 +282,70 @@ select * from cx.product_master
 where 1=1-- [check] = 'new'
 and cigatype ='CC'
 and FLAVORSEG_type3 ='New Taste';
+
+
+
+
+
+
+-- 7개
+select * from cx.fct_K7_Monthly 
+where id ='CF8365D724A58BA572F963EE463FC29195C6E723244EB14685400911263F829A';
+
+-- Cohort 분석 중 2가지 케이스
+-- 04517C447A73A95CB2C3D26849A9662FB9A6AE031DC46FFBD64205B383A5B930 202302 기록 있는데 왜 빠지지??  그래서 202303월 초기 구매로 잡힘
+-- 04792C5FEA2E970AE8AA8DBA4DA775B2B508BB9EFDB321AFCCB948A61D75DF29 202304 구매 기록이 없으니 빠져야함... 하란님 요청사항
+
+
+
+
+
+with Total_purchaser as(
+	-- (2) 전체 구매이력 확인
+	select
+ 		engname, t.YYYYMM, t.id
+	from cx.seven11_user_3month_list t
+		join cx.fct_K7_Monthly x on x.id = t.id and x.YYYYMM = t.YYYYMM 
+		join cx.product_master y on x.product_code = y.PROD_ID and CIGADEVICE ='CIGARETTES' and CIGATYPE != 'CSV' 
+	where 1=1 
+	and t.id in ( 
+		select a.id
+		from cx.fct_K7_Monthly a  
+			join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE ='CIGARETTES' and CIGATYPE != 'CSV'
+		where a.YYYYMM between convert(nvarchar(6), dateadd(month, 0, t.YYYYMM + '01'), 112)
+		   				   and convert(nvarchar(6), dateadd(month, 3, t.YYYYMM + '01'), 112)
+		group by a.id
+		having count(distinct a.yyyymm) = 4
+	)
+	and t.YYYYMM >= '202201'
+	group by engname, t.YYYYMM, t.id
+),
+first_purchaser as (
+	select b.engname, 
+		t.id, 
+		min(a.YYYYMM) first_purchase 
+	from Total_purchaser t
+		join cx.fct_K7_Monthly a on t.id = a.id and t.YYYYMM = a.YYYYMM
+		join cx.product_master b on a.product_code = b.PROD_ID  and CIGADEVICE ='CIGARETTES' and CIGATYPE != 'CSV' 
+	group by b.engname, t.id
+),
+purchase as (
+	select b.engname, 
+		b.FLAVORSEG_type6, 
+		t.YYYYMM, 
+		t.id,
+		first_purchase ,
+		DATEDIFF(MONTH, CAST(first_purchase +'01' as date), CAST(t.YYYYMM +'01' as date) ) cohort,
+		row_number() over(partition by b.engname, b.FLAVORSEG_type6, t.id, first_purchase order by t.YYYYMM ) rn
+	from  cx.seven11_user_3month_list t 
+		join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM 
+		join cx.product_master b on a.product_code = b.PROD_ID  and CIGADEVICE ='CIGARETTES' and CIGATYPE = 'CC' and NPL_YN ='Y' and  FLAVORSEG_type6 ='Regular to New Taste'
+		left join first_purchaser x on t.id = x.id and x.engname = b.engname
+	where  b.engname ='BOHEM CIGAR ICE FIT'
+	group by b.engname, b.FLAVORSEG_type6, t.YYYYMM, t.id, first_purchase
+)
+select * 
+from purchase
+where cohort = 0 -- between 0 and 3
+and rn between 1 and 3
+and first_purchase = '202204';
