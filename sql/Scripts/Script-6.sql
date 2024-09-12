@@ -32,3 +32,6 @@ group by a.age
 select * 
 from cx.fct_K7_Monthly 
 where 4 > len(id);
+
+select max(YYYYMM) 
+from cu.Fct_BGFR_PMI_Monthly 

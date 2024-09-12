@@ -119,12 +119,12 @@ group by yyyymm
 
 -- Regular to NTD NPL Product Purchaser (리스트 내 제품)
 with temp as ( 
-	select t.YYYYMM, engname, t.id
+	select t.YYYYMM, t.id
 	from cx.seven11_user_3month_list t
 		join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM 
 		join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE ='CIGARETTES' and CIGATYPE ='CC' and NPL_YN ='Y' and  FLAVORSEG_type6 ='Regular to New Taste'
 	where t.YYYYMM >= '202201'
-	group by t.YYYYMM, engname, t.id
+	group by t.YYYYMM,  t.id
 	having sum(a.Pack_qty ) > 1
 )
 select yyyymm, count(distinct id) 'Regular to NTD NPL Purchasers'
@@ -245,12 +245,12 @@ group by engname, FLAVORSEG_type6 , t.id, first_purchased
 
 
  
--- Pivot 및 m1, m2, m3, m4 작업 필요 
+-- Pivot 및 m1, m2, m3, m4 하나씩 작업 필요 
 -- 모수 기본조건!! 시간이 오래 걸리니.. 필요한 데이터만 테이블로 생성해불자
 with Total_purchaser as(
-	-- (2) 전체 구매이력 있는지 구매자 추출
+	-- (1) 전체 구매이력 있는지 구매자 추출
 	select
- 		engname, t.YYYYMM, t.id
+ 		engname, t.YYYYMM, t.id --sum(a.pack_qty) pack_qty2
 	from cx.seven11_user_3month_list t
 		join cx.fct_K7_Monthly x on x.id = t.id and x.YYYYMM = t.YYYYMM 
 		join cx.product_master y on x.product_code = y.PROD_ID and CIGADEVICE ='CIGARETTES' and CIGATYPE != 'CSV' 
@@ -262,13 +262,13 @@ with Total_purchaser as(
 		where a.YYYYMM between convert(nvarchar(6), dateadd(month, 0, t.YYYYMM + '01'), 112)
 		   				   and convert(nvarchar(6), dateadd(month, 3, t.YYYYMM + '01'), 112)
 		group by a.id
-		having count(distinct a.yyyymm) = 4			-- 조건1 M1/M2/M3/M4 .. 첫 구매부터 몇 개월까지 구매를 지속했는지 파악(조건은 4개월치 구매지속함)
+		having count(distinct a.yyyymm) = 1			-- 조건1 M1/M2/M3/M4 .. 첫 구매부터 몇 개월까지 구매를 지속했는지 파악(조건은 4개월치 구매지속함)
 	)
-	and t.YYYYMM >= '202201'				 		-- 조건2 구매 시작월
+	and t.YYYYMM >= '202407'				 		-- 조건2 구매 시작월
 	group by engname, t.YYYYMM, t.id
 ),
 First_purchase as(
-	-- 구매자별 생애 첫 제품구매월 
+	-- (2) 구매자별 생애 첫 제품구매월 
       SELECT
            b.engname,
 			a.id,
@@ -278,11 +278,11 @@ First_purchase as(
        GROUP BY b.engname, a.id
 )
 --insert into cx.first_purchaser
-SELECT engname, id, min(YYYYMM) first_purchase
+SELECT engname, id,  min(YYYYMM) first_purchase
 --into cx.first_purchaser
 FROM Total_purchaser t
 where not exists (
-	-- 과거 구매이력이 있으면 제외
+	-- (3) 과거 구매이력이 있으면 제외
 	select 1
 	from First_purchase fp
 	where t.id = fp.id and t.engname = fp.engname
@@ -312,26 +312,58 @@ with purchase as (
 	group by b.engname, b.FLAVORSEG_type6, t.YYYYMM, t.id, first_purchase
 )
 select * -- distinct first_purchase, rn 
-from purchase
+from purchase 
 where cohort between 0 and 3
 and rn between 1 and 4
 --and first_purchase = '202302'
 ;
 
 
--- 모수: 3,4,5,6월 연달아 구매
-select
-	t.YYYYMM, 
-	t.id
-from cx.seven11_user_3month_list t
-	join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM 
-	join cx.product_master b on a.product_code = b.PROD_ID  and CIGADEVICE ='CIGARETTES' and CIGATYPE != 'CSV' 
-where t.YYYYMM >= '202201'
-group by t.YYYYMM, t.id
-having sum(yyyymm) = 4
+
+-- NTD NPL Purchaser M1 구매자수
+with purchase as (
+	select b.engname, 
+		b.FLAVORSEG_type6, 
+		t.YYYYMM, 
+		t.id,
+		first_purchase ,
+		DATEDIFF(MONTH, CAST(first_purchase +'01' as date), CAST(t.YYYYMM +'01' as date) ) cohort,
+		dense_rank() over(partition by b.engname, b.FLAVORSEG_type6 order by  first_purchase ) rn
+	from  cx.seven11_user_3month_list t 
+		join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM 
+		join cx.product_master b on a.product_code = b.PROD_ID  and CIGADEVICE ='CIGARETTES' and CIGATYPE = 'CC' and NPL_YN ='Y' and  FLAVORSEG_type6 ='Fresh to New Taste'
+		left join cx.first_purchaser x on t.id = x.id and x.engname = b.engname 
+	-- 기준월(202201) 이전 출시 제품 제외
+	where b.engname not in ('BOHEM CIGAR CARIBE',
+							'Dunhill Electric Crush',
+							'DUNHILL EXOTIC CRUSH',
+							'DUNHILL LIT ZEPHYR MNT KS OCT 20',
+							'Dunhill Smooth Crush',
+							'ESSE CHANGE DOUBLE',
+							'ESSE CHANGE GRAM 100 DHX 20 SSL',
+							'Marlboro Vista Tropical Splash',
+							'MEVIUS LBS BANA SSL',
+							'MEVIUS LBS TROPICAL MIX 3mg',
+							'Parliament Double Wave',
+							'RAISON FRENCH ICE BLAN' ) 
+	group by b.engname, b.FLAVORSEG_type6, t.YYYYMM, t.id, first_purchase
+),
+launch_product as(
+	-- (2) 제품 출시월 
+      SELECT
+           b.engname,
+           MIN(a.YYYYMM) AS start_prodcut
+       FROM cx.fct_K7_Monthly a  
+       JOIN cx.product_master b ON a.product_code = b.PROD_ID AND b.CIGADEVICE = 'CIGARETTES' AND b.CIGATYPE != 'CSV'
+       GROUP BY b.engname
+)
+select YYYYMM, count(distinct id)
+from purchase a
+	join launch_product b on a.engname = b.engname and a.first_purchase = b.start_prodcut
+where cohort = 0
+group by YYYYMM
 ;
 
-	           	 
 	           	 
 
 

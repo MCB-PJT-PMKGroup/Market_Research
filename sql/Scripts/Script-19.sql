@@ -286,11 +286,16 @@ and FLAVORSEG_type3 ='New Taste';
 
 
 
-
+select * 
+from cx.seven11_user_3month_list 
+where id ='00B173F289BDEE8A52A24CE74B736DDC27AA2D86E513A6C00DD15D4D28D3AB0E'
+order by YYYYMM;
 
 -- 7개
-select * from cx.fct_K7_Monthly 
-where id ='CF8365D724A58BA572F963EE463FC29195C6E723244EB14685400911263F829A';
+select b.engname, * from cx.fct_K7_Monthly a
+	join cx.product_master b on a.product_code  = b.PROD_ID 
+where id ='00B173F289BDEE8A52A24CE74B736DDC27AA2D86E513A6C00DD15D4D28D3AB0E'
+order by de_dt;
 
 -- Cohort 분석 중 2가지 케이스
 -- 04517C447A73A95CB2C3D26849A9662FB9A6AE031DC46FFBD64205B383A5B930 202302 기록 있는데 왜 빠지지??  그래서 202303월 초기 구매로 잡힘
@@ -298,10 +303,16 @@ where id ='CF8365D724A58BA572F963EE463FC29195C6E723244EB14685400911263F829A';
 
 
 
+select *
+from cx.first_purchaser
+where engname ='MEVIUS CITRO WAVE'
+and first_purchase ='202404';
 
 
+
+-- 이전 구매내역 필터 전
 with Total_purchaser as(
-	-- (2) 전체 구매이력 확인
+	-- (2) 전체 구매이력 있는지 구매자 추출
 	select
  		engname, t.YYYYMM, t.id
 	from cx.seven11_user_3month_list t
@@ -319,33 +330,13 @@ with Total_purchaser as(
 	)
 	and t.YYYYMM >= '202201'
 	group by engname, t.YYYYMM, t.id
-),
-first_purchaser as (
+)
 	select b.engname, 
 		t.id, 
 		min(a.YYYYMM) first_purchase 
 	from Total_purchaser t
 		join cx.fct_K7_Monthly a on t.id = a.id and t.YYYYMM = a.YYYYMM
 		join cx.product_master b on a.product_code = b.PROD_ID  and CIGADEVICE ='CIGARETTES' and CIGATYPE != 'CSV' 
+	where b.engname ='DUNHILL ALPS BOOST'
 	group by b.engname, t.id
-),
-purchase as (
-	select b.engname, 
-		b.FLAVORSEG_type6, 
-		t.YYYYMM, 
-		t.id,
-		first_purchase ,
-		DATEDIFF(MONTH, CAST(first_purchase +'01' as date), CAST(t.YYYYMM +'01' as date) ) cohort,
-		row_number() over(partition by b.engname, b.FLAVORSEG_type6, t.id, first_purchase order by t.YYYYMM ) rn
-	from  cx.seven11_user_3month_list t 
-		join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM 
-		join cx.product_master b on a.product_code = b.PROD_ID  and CIGADEVICE ='CIGARETTES' and CIGATYPE = 'CC' and NPL_YN ='Y' and  FLAVORSEG_type6 ='Regular to New Taste'
-		left join first_purchaser x on t.id = x.id and x.engname = b.engname
-	where  b.engname ='BOHEM CIGAR ICE FIT'
-	group by b.engname, b.FLAVORSEG_type6, t.YYYYMM, t.id, first_purchase
-)
-select * 
-from purchase
-where cohort = 0 -- between 0 and 3
-and rn between 1 and 3
-and first_purchase = '202204';
+	having min(a.YYYYMM) = '202204'

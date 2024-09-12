@@ -8,7 +8,7 @@ CC Switching 2023 vs. 2022 Fresh Taste CC
 -- CC 대상 Taste 별 제품 개수 참고
 select  FLAVORSEG_type3  ,count(*)
 from bpda.cx.product_master
-where  CIGADEVICE =  'CIGARETTES' AND  cigatype = 'CC'
+where  CIGADEVICE =  'CIGARETTES' AND  cigatype = 'HnB'
 group by FLAVORSEG_type3;
 -- 대상 개수
 --NULL	6
@@ -17,7 +17,7 @@ group by FLAVORSEG_type3;
 --Regular	140
 
 -- 모수 테이블 생성
---insert into cx.agg_CC_Taste_Switch_2022_2023
+insert into cx.agg_CC_Taste_Switch_2022_2023
 SELECT 
     a.id,
 	b.FLAVORSEG_type3, b.cigatype,
@@ -26,10 +26,9 @@ SELECT
 --into cx.agg_CC_Taste_Switch_2022_2023
 FROM 
     cx.fct_K7_Monthly a
-     	join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV'  
-     	-- Taste 별 제품군 대상
-		-- in ('Regular', 'New Taste', 'Fresh')	
-    	and b.FLAVORSEG_type3 = 'Fresh' and b.cigatype = 'CC'
+     	join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype = 'HnB'			-- Taste 별 제품군 대상
+		--  ('Regular', 'New Taste', 'Fresh') in FLAVORSEG_type3
+    	and b.FLAVORSEG_type3 = 'Regular' 
 where 1=1
    	and left(a.YYYYMM, 4) in ('2022', '2023')
     --2022, 2023년 모두 구매한 사람은 제외
@@ -78,9 +77,9 @@ HAVING
     )
 ;
 
+
 -- 데이터 검증
 select FLAVORSEG_type3, count(*)
---from cx.agg_top5_Switch_2022_2023
 from cx.agg_CC_Taste_Switch_2022_2023 
 group by FLAVORSEG_type3;
 --New Taste	93904
@@ -119,7 +118,7 @@ from
 		join cx.fct_K7_Monthly a on a.id = t.id AND 4 < LEN(a.id) and left(a.YYYYMM, 4) in ('2022', '2023') 
 		join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' AND b.cigatype != 'CSV' 
 			and not (t.FLAVORSEG_type3 = b.FLAVORSEG_type3 and t.cigatype = b.cigatype)
-WHERE t.FLAVORSEG_type3 = 'Fresh'
+WHERE t.cigatype ='HnB' and t.FLAVORSEG_type3 = 'Fresh' 
 group by grouping sets ((b.cigatype, b.FLAVORSEG_type3, b.New_TARSEGMENTAT),  (b.cigatype, b.FLAVORSEG_type3),  (b.cigatype), ())
 ;
 
@@ -142,9 +141,10 @@ from
 		join cx.fct_K7_Monthly a on t.id = a.id and 4 < len(a.id) and left(a.YYYYMM, 4) in ('2022', '2023')  
 		join cx.product_master b on a.Product_code = b.prod_id and b.CIGADEVICE ='CIGARETTES' and b.CIGATYPE != 'CSV' 
 			and not (t.FLAVORSEG_type3 = b.FLAVORSEG_type3 and t.cigatype = b.cigatype)
-WHERE t.FLAVORSEG_type3 = 'Fresh'
+WHERE  t.cigatype ='HnB' and t.FLAVORSEG_type3 = 'Fresh' 
 group by grouping sets ((b.cigatype, b.Engname, b.FLAVORSEG_type3, b.New_Tarsegmentat, b.THICKSEG), (b.cigatype), ())
 ;
+
 
 -- 구매자, 구매팩수 총 카운트
 select 
@@ -166,6 +166,7 @@ GROUP BY
 -- In/Out별 구매자수, 총 구매 팩수 
 select  
 	t.FLAVORSEG_type3, 
+	t.cigatype,
 	left(a.yyyymm,4) year,
 	count(DISTINCT case when t.[Out] > 0 then t.id end ) as Out_Purchaser_Cnt,
 	count(DISTINCT case when t.[In] > 0 then t.id end ) as In_Purchaser_Cnt,
@@ -176,7 +177,8 @@ from
 		join cx.fct_K7_Monthly a on a.id = t.id AND 4 < LEN(a.id) and left(a.YYYYMM, 4) in ('2022', '2023') 
 		join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' AND b.cigatype != 'CSV'
 			and (t.FLAVORSEG_type3 = b.FLAVORSEG_type3 and t.cigatype = b.cigatype)
-where 1=1 -- t.New_FLAVORSEG = 'PLT'		
+where 1=1 --t.cigatype ='HnB'		
 group by
-     t.FLAVORSEG_type3, left(a.YYYYMM, 4)
+     t.FLAVORSEG_type3, t.cigatype, left(a.YYYYMM, 4)
+order by cigatype, FLAVORSEG_type3 , year
 ;
