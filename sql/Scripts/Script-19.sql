@@ -340,3 +340,81 @@ with Total_purchaser as(
 	where b.engname ='DUNHILL ALPS BOOST'
 	group by b.engname, t.id
 	having min(a.YYYYMM) = '202204'
+
+;
+
+
+
+insert into cx.fct_K7_Monthly 
+select 
+	de_dt
+	,product_code
+	,id
+	,buy_ct
+	,left(de_dt, 6) YYYYMM
+	,buy_ct * cast(SAL_QNT as decimal) Pack_qty
+	,gender
+	,age
+	,rct_seq
+from cx.K7_202408 a
+	left join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and 4 < len(a.id) and b.CIGATYPE != 'CSV'
+;
+
+
+insert into cx.product_master 
+select a.*,
+		CASE 
+	        WHEN a.FLAVORSEG like 'FS1:%' THEN 'Regular'
+	        WHEN a.FLAVORSEG like 'FS2:%' THEN 'Fresh'
+	        WHEN a.FLAVORSEG like 'FS3:%' THEN 'Fresh'
+	        WHEN a.FLAVORSEG like 'FS4:%' THEN 'New Taste'
+	        WHEN a.FLAVORSEG like 'FS5:%' THEN 'Fresh'
+	        WHEN a.FLAVORSEG like 'FS7:%' THEN 'New Taste'
+	        WHEN a.FLAVORSEG like 'FS8:%' THEN 'New Taste'
+	        WHEN a.FLAVORSEG like 'FS9:%' THEN 'New Taste'
+	        WHEN a.FLAVORSEG like 'FS10:%' THEN 'New Taste'
+	        WHEN a.FLAVORSEG like 'FS11:%' THEN 'Fresh'
+	        WHEN a.FLAVORSEG like 'FS12:%' THEN 'Fresh'
+	        WHEN a.FLAVORSEG like 'FS13:%' THEN 'Fresh'
+	        WHEN a.FLAVORSEG like 'FS14:%' THEN 'New Taste'
+	        when a.FLAVORSEG like 'Aftercut (New%' then 'New Taste'
+	        when a.FLAVORSEG like 'Regular Fresh' then 'Fresh' 
+	        when a.FLAVORSEG like 'Regular to Fresh' then 'Fresh'
+			when a.FLAVORSEG like 'Regular to New Taste' then 'New Taste'
+			when a.FLAVORSEG like 'Fresh to New Taste' then 'New Taste'
+	        ELSE a.FLAVORSEG
+    	END as FLAVORSEG_type3,
+		CASE 
+	    	when a.TARSEGMENTAT like 'TS1:%' then 'FF'
+	    	when a.TARSEGMENTAT like 'TS2:%' then 'LTS'
+	    	when a.TARSEGMENTAT like 'TS3:%' then 'ULT'
+	    	when a.TARSEGMENTAT like 'TS4:%' then '1MG'
+	    	when a.TARSEGMENTAT like 'TS5:%' then 'Below 1MG'
+	    	else a.TARSEGMENTAT 
+	    END as New_TARSEGMENTAT,
+    	CASE 
+		    WHEN a.FLAVORSEG like 'FS1:%' THEN 'Regular'
+		    WHEN a.FLAVORSEG like 'FS2:%' THEN 'Regular to Fresh'
+		    WHEN a.FLAVORSEG like 'FS3:%' THEN 'Regular to Fresh'
+		    WHEN a.FLAVORSEG like 'FS4:%' THEN 'Regular to New Taste'
+		    WHEN a.FLAVORSEG like 'FS5:%' THEN 'Fresh to Fresh'
+		    WHEN a.FLAVORSEG like 'FS7:%' THEN 'New Taste'
+		    WHEN a.FLAVORSEG like 'FS8:%' THEN 'Fresh to New Taste'
+		    WHEN a.FLAVORSEG like 'FS9:%' THEN 'Fresh to New Taste'
+		    WHEN a.FLAVORSEG like 'FS10:%' THEN 'Regular to New Taste'
+		    WHEN a.FLAVORSEG like 'FS11:%' THEN 'Fresh to Fresh'
+		    WHEN a.FLAVORSEG like 'FS12:%' THEN 'Regular to Fresh'
+		    WHEN a.FLAVORSEG like 'FS13:%' THEN 'Regular Fresh'
+		    WHEN a.FLAVORSEG like 'FS14:%' THEN 'New Taste'
+		    when a.FLAVORSEG like 'Aftercut (New%' then 'New Taste'
+		    when a.FLAVORSEG like 'Regular Fresh' then 'Regular Fresh' 
+		    when a.FLAVORSEG like 'Regular to Fresh' then 'Regular to Fresh'
+			when a.FLAVORSEG like 'Regular to New Taste' then 'Regular to New Taste'
+			when a.FLAVORSEG like 'Fresh to New Taste' then 'Fresh to New Taste'
+    	ELSE a.FLAVORSEG
+    	end as FLAVORSEG_type6,
+    	'N' NPL_YN
+from cx.product_master_tmp a
+	left join  cx.product_master b on a.PROD_ID = b.PROD_ID 
+where b.prod_id is null;
+

@@ -110,7 +110,7 @@ from cu.agg_CU_TEREA_Total_Sourcing t
 		 	     		 AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)
 	join cu.dim_product_master b on x.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' and b.cigatype='CC'
 	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
-where 1=1
+where (PACK_QTY != sale_qty and pack_qty >= 10)
 and t.YYYYMM >= '202406'
 group BY
 	grouping sets (
@@ -118,6 +118,20 @@ group BY
 		(t.YYYYMM)
 	)
 ;
+
+select engname, min(price), max(price)
+from cu.agg_CU_TEREA_Total_Sourcing t	
+	join cu.Fct_BGFR_PMI_Monthly x on t.id = x.id 
+		and x.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
+		 	     		 AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)
+	join cu.dim_product_master b on x.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' and b.cigatype='CC'
+	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+where 1=1 --(PACK_QTY != sale_qty and pack_qty >= 10)
+and t.YYYYMM >= '202206'
+group BY engname
+having min(price) > 4500
+
+
 
 --update a 
 --set price = NOW_SLPR
