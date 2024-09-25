@@ -119,6 +119,28 @@ group BY
 	)
 ;
 
+
+select  
+	t.YYYYMM, COALESCE(gr_cd, '합계') 'Gr Region',
+	count(distinct x.id) purchasers,
+	count(distinct case when price < 4500 then t.id end) 'less than 4500',
+	count(distinct case when price = 4500 then t.id end) '4500',
+	count(distinct case when price > 4500 then t.id end) 'greater than 4500'
+from cu.agg_CU_TEREA_Total_Sourcing t	
+	join cu.Fct_BGFR_PMI_Monthly x on t.id = x.id 
+		and x.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
+		 	     		 AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)
+	join cu.dim_product_master b on x.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' and b.cigatype='CC'
+	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
+where 1=1 -- (PACK_QTY != sale_qty and pack_qty >= 10)
+and t.YYYYMM >= '202406'
+group BY
+	grouping sets (
+		(t.YYYYMM, gr_cd),
+		(t.YYYYMM)
+	)
+;
+
 select engname, min(price), max(price)
 from cu.agg_CU_TEREA_Total_Sourcing t	
 	join cu.Fct_BGFR_PMI_Monthly x on t.id = x.id 

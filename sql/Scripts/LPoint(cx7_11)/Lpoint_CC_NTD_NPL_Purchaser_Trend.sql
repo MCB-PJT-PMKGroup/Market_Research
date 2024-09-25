@@ -94,7 +94,7 @@ with temp as (
 	group by t.YYYYMM, t.id
 	having sum(a.Pack_qty ) > 1
 )
-select yyyymm, count(distinct id) Purchasers
+select yyyymm, count(distinct id) 'FTN'
 from temp 
 group by yyyymm
 ;

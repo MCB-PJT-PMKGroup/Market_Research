@@ -254,11 +254,6 @@ group by
 
 
 
-
-
-
-
-
 select ym_cd, SIDO_CD , cust_id, item_cd
 from cu.BGFR_PMI_202407 
 group by ym_cd, SIDO_CD , cust_id, item_cd
@@ -283,6 +278,10 @@ where 1=1-- [check] = 'new'
 and cigatype ='CC'
 and FLAVORSEG_type3 ='New Taste';
 
+
+select YYYYMM, count(*) 
+from cx.v_user_3month_list 
+group by YYYYMM;
 
 
 
@@ -359,6 +358,9 @@ select
 from cx.K7_202408 a
 	left join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and 4 < len(a.id) and b.CIGATYPE != 'CSV'
 ;
+
+
+
 
 
 insert into cx.product_master 

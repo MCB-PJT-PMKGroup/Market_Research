@@ -143,7 +143,7 @@ from (
        cx.fct_K7_Monthly a
        join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
    where 1=1
-   and b.ProductSubFamilyCode in ('NEO', 'NEOSTICKS')
+   and b.ProductSubFamilyCode = 'TEREA'
    group by YYYYMM , a.id
 ) as t
 where rn = 1
@@ -153,7 +153,7 @@ TEREA_Purchasers as (
 	from temp t
 		join cx.fct_K7_Monthly a on a.id = t.id  and  a.YYYYMM = t.YYYYMM
 		join cx.product_master b on a.product_code = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-	where t.YYYYMM >= '202211'
+	where t.YYYYMM = '202408'
 	and
 	   exists (
 	       -- (2) 직전 3개월 동안 구매이력이 있는지 확인
@@ -172,7 +172,7 @@ TEREA_Purchasers as (
 	       count(distinct b.engname) < 11 -- (3) SKU 11종 미만
 	   and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만
 )   
---insert into cx.agg_LPoint_TEREA_Total_Sourcing
+insert into cx.agg_LPoint_TEREA_Total_Sourcing
 select 
 	t.YYYYMM, t.id,
 	max(a.gender) gender, 
@@ -269,7 +269,7 @@ select
 --into cx.agg_LPoint_TEREA_Total_Sourcing
 --into cx.agg_LPoint_MIIX_Total_Sourcing
 --into cx.agg_LPoint_FIIT_Total_Sourcing
-into cx.agg_LPoint_NEO_Total_Sourcing
+--into cx.agg_LPoint_NEO_Total_Sourcing
 from TEREA_Purchasers t
 	join cx.fct_K7_Monthly a on t.id = a.id 	-- 구매자
 		-- 테리어 구매자가 이전 3개월 동안 무엇을 구매했는지
@@ -314,7 +314,7 @@ select t.YYYYMM,
 	count(case when t.age = '50대' then 1 end) '50s',
 	count(case when t.age = '60대' then 1 end) '60s',
 	count(case when t.age = '70대' then 1 end) '70s'
-from cx.agg_LPoint_NEO_Total_Sourcing t
+from cx.agg_LPoint_TEREA_Total_Sourcing t
 where 1=1 
 group by t.YYYYMM
 order by t.YYYYMM
@@ -337,7 +337,7 @@ select
 	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='Fresh' then t.id end ) 'HnB Fresh',
 	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='New Taste' then t.id end ) 'HnB New Taste',
 	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='Regular' then t.id end ) 'HnB Regular'
-from cx.agg_LPoint_NEO_Total_Sourcing  t
+from cx.agg_LPoint_TEREA_Total_Sourcing  t
 	join cx.fct_K7_Monthly a on a.id = t.id 
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
@@ -412,7 +412,7 @@ SELECT YYYYMM,
     SUM([TEREA SUN PEARL]) AS "TEREA SUN PEARL",
     SUM([TEREA TEAK]) AS "TEREA TEAK",
     SUM([TEREA YUGEN]) AS "TEREA YUGEN"
-FROM cx.agg_LPoint_NEO_Total_Sourcing t	
+FROM cx.agg_LPoint_TEREA_Total_Sourcing t	
 GROUP BY YYYYMM 
 ORDER BY YYYYMM
 ;
