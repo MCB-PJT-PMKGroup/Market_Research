@@ -64,24 +64,14 @@ SELECT
         weekofmonth = datepart(wk, dt) - datepart(wk, left(convert(varchar, dt, 112), 6)+ '01') + 1,
         DATEADD(DAY, 2 - DATEPART(WEEKDAY, dt), dt) AS MondayOfMonth,
         CONVERT(nvarchar(6), dt, 112) as YYYYMM,
-        datepart(q, dt) as quarterly
-INTO dbo.Dim_Calendar 
+        concat(format(year(dt), '0000'), datepart(q, dt)) as quarterly
+--INTO cx.Dim_Calendar 
 FROM tmp 
 OPTION (maxrecursion 0)
 ;
 
--- 주차 수 넣기
-WITH temp AS (
-SELECT 
-	[date],
-	DENSE_RANK() OVER (PARTITION BY YEAR(MondayOfMonth), MONTH(MondayOfMonth) ORDER BY MondayOfMonth) AS Week_Num 
-FROM Dim_Calendar 
-)
-update cx.Dim_Calendar 
-SET week_num = temp.week_num
-FROM temp
-WHERE Dim_Calendar.[date] = temp.[date]
-;
+drop table cx.Dim_Calendar ;
+
 
 
 SELECT * FROM cx.Dim_Calendar ;

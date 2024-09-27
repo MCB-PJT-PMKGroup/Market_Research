@@ -17,7 +17,7 @@ group by FLAVORSEG_type3;
 --Regular	140
 
 -- 모수 테이블 생성
-insert into cx.agg_CC_Taste_Switch_2021_2022
+--insert into cx.agg_CC_Taste_Switch_2021_2022
 SELECT 
     a.id,
 	b.FLAVORSEG_type3, b.cigatype,
@@ -143,11 +143,55 @@ from
 		join cx.fct_K7_Monthly a on t.id = a.id and 4 < len(a.id) and left(a.YYYYMM, 4) in ('2021', '2022')  
 		join cx.product_master b on a.Product_code = b.prod_id and b.CIGADEVICE ='CIGARETTES' and b.CIGATYPE != 'CSV' 
 			and not (t.FLAVORSEG_type3 = b.FLAVORSEG_type3 and t.cigatype = b.cigatype)
-WHERE  t.cigatype ='HnB' and t.FLAVORSEG_type3 = 'Regular' 
+WHERE  t.cigatype ='HnB' and t.FLAVORSEG_type3 = 'New Taste' 
 group by grouping sets ((b.cigatype, b.Engname, b.FLAVORSEG_type3, b.New_Tarsegmentat, b.THICKSEG), (b.cigatype), ())
 ;
 
 
+
+-- Summary 구매자, 구매팩수 총 카운트
+select 
+	b.FLAVORSEG_type3,
+	b.cigatype,
+	left(a.yyyymm,4) year,
+	COUNT(distinct id ) Purchaser_Cnt,
+	sum(  a.pack_qty) as Total_Pack_Cnt
+FROM 
+	 cx.fct_K7_Monthly a  
+    	join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV'
+where 1=1
+   	and left(YYYYMM, 4) in ('2021', '2022')
+GROUP BY 
+	b.FLAVORSEG_type3, b.cigatype, left(a.YYYYMM, 4)
+order by cigatype, FLAVORSEG_type3, year
+;
+
+
+    
+-- Summary In/Out별 구매자수, 총 구매 팩수 
+select  
+	t.FLAVORSEG_type3, 
+	t.cigatype,
+	left(a.yyyymm,4) year,
+	count(DISTINCT case when t.[Out] > 0 then t.id end ) as Out_Purchaser_Cnt,
+	count(DISTINCT case when t.[In] > 0 then t.id end ) as In_Purchaser_Cnt,
+	sum(case when t.[Out] > 0 then  a.pack_qty else 0 end ) as Out_Quantity,
+	sum(case when t.[In] > 0 then  a.pack_qty else 0 end ) as In_Quantity
+from 
+	cx.agg_CC_Taste_Switch_2021_2022 t
+		join cx.fct_K7_Monthly a on a.id = t.id AND 4 < LEN(a.id) and left(a.YYYYMM, 4) in ('2021', '2022') 
+		join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' AND b.cigatype != 'CSV'
+			and (t.FLAVORSEG_type3 = b.FLAVORSEG_type3 and t.cigatype = b.cigatype)
+where 1=1 --t.cigatype ='HnB'		
+group by
+     t.FLAVORSEG_type3, t.cigatype, left(a.YYYYMM, 4)
+order by cigatype, FLAVORSEG_type3 , year
+;
+
+
+
+
+--------------------------------------------------------------------
 
 -- CC, HnB 총 구매 카운트
 select 
@@ -183,43 +227,8 @@ where 1=1
    	and left(t.YYYYMM, 4) in ('2021', '2022')
 GROUP BY 
 	b.FLAVORSEG_type3, b.cigatype, left(a.YYYYMM, 4)
-;
-
--- 구매자, 구매팩수 총 카운트
-select 
-	b.FLAVORSEG_type3,
-	b.cigatype,
-	left(a.yyyymm,4) year,
-	COUNT(distinct id ) Purchaser_Cnt,
-	sum(  a.pack_qty) as Total_Pack_Cnt
-FROM 
-	 cx.fct_K7_Monthly a  
-    	join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV'
-where 1=1
-   	and left(YYYYMM, 4) in ('2021', '2022')
-GROUP BY 
-	b.FLAVORSEG_type3, b.cigatype, left(a.YYYYMM, 4)
+order by cigatype, FLAVORSEG_type3, year
 ;
 
 
-    
--- In/Out별 구매자수, 총 구매 팩수 
-select  
-	t.FLAVORSEG_type3, 
-	t.cigatype,
-	left(a.yyyymm,4) year,
-	count(DISTINCT case when t.[Out] > 0 then t.id end ) as Out_Purchaser_Cnt,
-	count(DISTINCT case when t.[In] > 0 then t.id end ) as In_Purchaser_Cnt,
-	sum(case when t.[Out] > 0 then  a.pack_qty else 0 end ) as Out_Quantity,
-	sum(case when t.[In] > 0 then  a.pack_qty else 0 end ) as In_Quantity
-from 
-	cx.agg_CC_Taste_Switch_2021_2022 t
-		join cx.fct_K7_Monthly a on a.id = t.id AND 4 < LEN(a.id) and left(a.YYYYMM, 4) in ('2021', '2022') 
-		join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' AND b.cigatype != 'CSV'
-			and (t.FLAVORSEG_type3 = b.FLAVORSEG_type3 and t.cigatype = b.cigatype)
-where 1=1 --t.cigatype ='HnB'		
-group by
-     t.FLAVORSEG_type3, t.cigatype, left(a.YYYYMM, 4)
-order by cigatype, FLAVORSEG_type3 , year
-;
 

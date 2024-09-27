@@ -31,7 +31,7 @@ select
 	,id
 	,buy_ct
 	,left(de_dt, 6) YYYYMM
-	,buy_ct * cast(SAL_QNT as decimal) Pack_qty
+	,buy_ct * cast(SAL_QNT as decimal(18,10)) Pack_qty
 	,gender
 	,age
 	,rct_seq
