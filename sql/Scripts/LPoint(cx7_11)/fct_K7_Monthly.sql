@@ -23,7 +23,8 @@ CREATE NONCLUSTERED INDEX ix_fct_K7_Monthly_product_code
 ON cx.fct_K7_Monthly ( product_code, YYYYMM )
 include ( pack_qty);
 
--- 1,089,136 rows
+
+-- 새로 들어온 데이터 Insert 
 insert into cx.fct_K7_Monthly 
 select 
 	de_dt
@@ -35,13 +36,14 @@ select
 	,gender
 	,age
 	,rct_seq
-from cx.K7_202406 a
+from cx.K7_202409 a
 	left join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and 4 < len(a.id) and b.CIGATYPE != 'CSV'
 ;
 
 
+
 update a
-set a.Pack_qty = a.buy_ct * cast(b.sal_qnt as decimal)
+set a.Pack_qty = a.buy_ct * cast(b.sal_qnt as decimal(18,10))
 from cx.fct_K7_Monthly a
 	left join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.CIGATYPE != 'CSV'
 ;
@@ -108,3 +110,5 @@ group by yyyymm;
 --202405	1102170
 --202406	1089136
 --202407	1125632
+--202408	1090308
+--202409	1035207

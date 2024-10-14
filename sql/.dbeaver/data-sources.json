@@ -28,6 +28,26 @@
 				"resultset.datetime.editor": "false",
 				"resultset.maxrows": "500"
 			}
+		},
+		"microsoft-1924baa8ae9-33bf88aa1dd3207c": {
+			"provider": "sqlserver",
+			"driver": "microsoft",
+			"name": "cmrrpt",
+			"save-password": true,
+			"configuration": {
+				"host": "siakr_dwh32.tdisf-prd.eu-west-1.aws.private-pmideep.biz",
+				"port": "49600",
+				"database": "cmrrpt",
+				"url": "jdbc:sqlserver://;serverName\u003dsiakr_dwh32.tdisf-prd.eu-west-1.aws.private-pmideep.biz;port\u003d49600;databaseName\u003dcmrrpt",
+				"configurationType": "MANUAL",
+				"type": "dev",
+				"closeIdleConnection": true,
+				"provider-properties": {
+					"@dbeaver-show-all-schemas@": "false",
+					"sslTrustServerCertificate": "false"
+				},
+				"auth-model": "sqlserver_windows"
+			}
 		}
 	},
 	"virtual-models": {"microsoft-190968d5824-625d6d4bdd2d99e0":{"BPDA":{"cu":{":dim_Regional_area":{"constraints":{"VIRTUAL_PK":{"type":"vpk","attributes":["sido_cd","gr_cd"]}}}}}}},

@@ -357,7 +357,7 @@ select yyyymm, count(*) total_Purchaser_cnt,
 	count(case when age = '60대' then 1 end) '60',
 	count(case when age = '70대' then 1 end) '70',
 	count(case when age = '미상' then 1 end) 'Unknown'
-from cx.agg_LPoint_TEREA_Sourcing  
+from cx.agg_LPoint_TEREA_SKU_Sourcing  
 group by yyyymm
 order by yyyymm;
 

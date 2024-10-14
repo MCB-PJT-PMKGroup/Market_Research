@@ -206,3 +206,5 @@ from cx.K7_202406 a
 	left join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and 4 < len(a.id) and b.CIGATYPE != 'CSV'
 where  id ='24A271EF18CC1080BB16E9D1A9D12C2238E907F7EEFE08D47A0975F4F6AE6EA6'
 ;
+
+

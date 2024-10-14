@@ -161,7 +161,7 @@ with temp as (
 		t.id
 	from cx.seven11_user_3month_list t
 		join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM 
-		join cx.product_master b on a.product_code = b.PROD_ID  and CIGADEVICE ='CIGARETTES' and CIGATYPE = 'CC'
+		join cx.product_master b on a.product_code = b.PROD_ID  and CIGADEVICE ='CIGARETTES' and CIGATYPE != 'CSV'
 	where t.YYYYMM >= '202201'
 	group by t.YYYYMM, t.id
 	having sum(a.Pack_qty ) > 1
@@ -187,7 +187,7 @@ with temp as (
 		t.id
 	from cx.seven11_user_3month_list t
 		join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM 
-		join cx.product_master b on a.product_code = b.PROD_ID  and CIGADEVICE ='CIGARETTES' and CIGATYPE = 'CC'
+		join cx.product_master b on a.product_code = b.PROD_ID  and CIGADEVICE ='CIGARETTES' and CIGATYPE != 'CSV'
 	where t.YYYYMM >= '202201'
 	group by t.YYYYMM, t.id
 	having sum(a.Pack_qty ) > 1
@@ -370,10 +370,6 @@ group by YYYYMM
 
 
 
-
-
-
-
 -- monthly tobacco Pack  수 (2022년 1월~)
 select t.YYYYMM, sum(a.Pack_qty) Pack_Qty
 from cx.v_user_3month_list t
@@ -413,7 +409,7 @@ with temp as (
 		sum(a.Pack_qty) pack
 	from cx.v_user_3month_list t
 		join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM 
-		join cx.product_master b on a.product_code = b.PROD_ID  and CIGADEVICE ='CIGARETTES' and CIGATYPE = 'CC'
+		join cx.product_master b on a.product_code = b.PROD_ID  and CIGADEVICE ='CIGARETTES' and CIGATYPE != 'CSV'
 	where t.YYYYMM >= '202201'
 	group by engname, b.FLAVORSEG_type3, t.YYYYMM, t.id
 	having sum(a.Pack_qty ) > 1
@@ -438,7 +434,7 @@ with temp as (
 		count(*) Purchaser_cnt
 	from cx.v_user_3month_list t
 		join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM 
-		join cx.product_master b on a.product_code = b.PROD_ID  and CIGADEVICE ='CIGARETTES' and CIGATYPE = 'CC'
+		join cx.product_master b on a.product_code = b.PROD_ID  and CIGADEVICE ='CIGARETTES' and CIGATYPE != 'CSV'
 	where t.YYYYMM >= '202201'
 	group by engname, b.FLAVORSEG_type3, t.YYYYMM, t.id
 	having count(*) > 1

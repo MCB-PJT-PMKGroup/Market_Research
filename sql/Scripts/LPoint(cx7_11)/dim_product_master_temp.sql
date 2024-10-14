@@ -129,7 +129,7 @@ select a.*,
     	ELSE a.FLAVORSEG
     	end as FLAVORSEG_type6,
     	'N' NPL_YN
-from cx.product_master_tmp a
+from cx.l_point_product_master_tmp a
 	left join  cx.product_master b on a.PROD_ID = b.PROD_ID 
 where b.prod_id is null;
 
