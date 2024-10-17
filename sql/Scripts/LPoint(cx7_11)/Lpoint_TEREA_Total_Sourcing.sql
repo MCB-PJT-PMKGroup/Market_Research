@@ -48,35 +48,47 @@ having
 ;
 
 
--- 직전 3개월 구매이력이 있는 구매자
--- 4,240,360 건
-select a.YYYYMM,  a.id
-from  cx.fct_K7_Monthly a 
-	join cx.product_master b on a.product_code = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-where a.YYYYMM >= '202211'
-and
-   exists (
-       -- (2) 직전 3개월 동안 구매이력이 있는지 확인
-       select 1
-       from cx.fct_K7_Monthly x
-       	join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
-       where
-           x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
-           				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
-       and a.id = x.id
-       group by x.YYYYMM, x.id
-	       	   having
-	       count(distinct y.engname) < 11 -- (3) SKU 11종 미만
-	       and sum(x.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만
-   )
-group by a.YYYYMM, a.id
-having
-       count(distinct b.engname) < 11 -- (3) SKU 11종 미만
-   and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만
+with temp as( 
+select * 
+from ( 
+   select  YYYYMM  , id, row_number() over (partition by id order by YYYYMM) rn  
+   from
+       cx.fct_K7_Monthly a
+       join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+   where 1=1
+   and b.ProductSubFamilyCode = 'TEREA'
+   group by YYYYMM , a.id
+) as t
+where rn = 1
+),
+TEREA_Purchasers as (
+	select t.YYYYMM, t.id
+	from temp t
+		join cx.fct_K7_Monthly a on a.id = t.id  and  a.YYYYMM = t.YYYYMM
+		join cx.product_master b on a.product_code = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+	where t.YYYYMM >= '202211'
+	and
+	   exists (
+	       -- (2) 직전 3개월 동안 구매이력이 있는지 확인
+	       select 1
+	       from cx.fct_K7_Monthly x
+	       	join cx.product_master y on x.product_code = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
+	       where
+	           x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
+	           				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
+           and a.id = x.id
+   	       group by x.YYYYMM, x.id
+		   having count(distinct y.engname) < 11 and sum(x.Pack_qty) < 61.0 -- (3) 구매 SKU 11종 미만 & 팩 수량 61개 미만
+	   )
+	group by t.YYYYMM, t.id 
+	having
+	       count(distinct b.engname) < 11 -- (3) SKU 11종 미만
+	   and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만
+)   
+SELECT YYYYMM, COUNT(DISTINCT ID)
+FROM TEREA_Purchasers
+GROUP BY YYYYMM
 ;
-
-
-
 
 
 -- 63,743
@@ -301,6 +313,14 @@ where CIGATYPE = 'CC'
 and CIGADEVICE ='CIGARETTES';
 
 
+select company ,trim(company)
+from cx.product_master
+where company= 'KTG       ';
+
+update cx.product_master
+set Company = trim(company)
+where company= 'KTG       ';
+
 -- 엑셀 시트 데이터 반영 작업
 --into cx.agg_LPoint_TEREA_Total_Sourcing
 --into cx.agg_LPoint_MIIX_Total_Sourcing
@@ -424,39 +444,18 @@ ORDER BY YYYYMM
 
 
 -- CC인 경우 TMO / Brand Family 조회
-(
-SELECT DISTINCT ProductFamilyCode, Company 
-from cx.product_master pm 
-where CIGATYPE = 'CC'
-and CIGADEVICE ='CIGARETTES'
-)
-;
-
-select YYYYMM,
-    SUM([BAT]) AS BAT,
-    SUM([JTI]) AS JTI,
-    SUM([KTG]) AS KTG,
-    SUM([PMK]) AS PMK
-FROM cx.agg_LPoint_TEREA_Total_Sourcing t	
-GROUP BY YYYYMM 
-ORDER BY YYYYMM
-;
-
 select 
-    SUM([BAT]) AS BAT,
-    SUM([JTI]) AS JTI,
-    SUM([KTG]) AS KTG,
-    SUM([PMK]) AS PMK,
-	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='Regular' then t.id end ) 'HnB Regular'
+	t.YYYYMM, ProductFamilyCode, b.company,
+    count(distinct t.id ) n
 from cx.agg_LPoint_TEREA_Total_Sourcing  t
 	join cx.fct_K7_Monthly a on a.id = t.id 
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
 	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND b.cigatype = 'CC'
 where 1=1
-group BY t.YYYYMM, ProductFamilyCode 
+group BY t.YYYYMM, ProductFamilyCode , b.company
 ;
-;
+
 
 -- Pivot 작업 필요
 
@@ -497,11 +496,12 @@ group BY
 ;
 
 
+
 -- user_past_type HEETS
 select  
 	t.YYYYMM, 
 	t.id,
-	max(case when b.ProductSubFamilyCode = 'HEETS' and b.company = 'PMK' then 1 else 0 end) HEETS_Purchased,
+	max(case when b.ProductSubFamilyCode = 'HEETS'  then 1 else 0 end) HEETS_Purchased,
 	max(case when b.cigatype='CC' then 1 else 0 end) CC_Purchased,
 	max(case when b.cigatype='HnB' and b.company != 'PMK' then 1 else 0 end) CompHnB_Purchased
 from cx.agg_LPoint_TEREA_Total_Sourcing  t
@@ -513,6 +513,12 @@ group BY
 	t.YYYYMM, 
 	t.id
 ;
+
+select YYYYMM, count(*) n
+from cx.agg_LPoint_TEREA_Total_Sourcing
+group by YYYYMM;
+
+
 
 
 
