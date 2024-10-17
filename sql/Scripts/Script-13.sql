@@ -1,9 +1,24 @@
---체인 상품 마스터 KAPOS.dbo.POS_BRD_MST
+--체인 상품 마스터 KAPOS.dbo.POS_BRD_MST  =연계 ismsr.dbo.Prodrctlocalrpt
 -- 체인 소매점 마스터 KAPOS.dbo.POS_OLT_MAP    
 
-KAPOS.dbo.POS_OLT_MAP   
+-- POS 데이터 
+Select  top 10 *
+FROM KAPOS.dbo.POS_DATA A --각 체인별 판매데이터 :
+    left JOIN KAPOS.dbo.POS_OLT_MAP    B ON B.CHAIN_CODE = A.CHAIN_CODE AND B.CHAIN_OLTCODE = A.CHAIN_OLTCODE -- 각 체인 소매점 마스터
+    left JOIN KAPOS.dbo.POS_BRD_MST    C ON C.CHAIN_CODE = A.CHAIN_CODE AND C.PROD_ID = A.PROD_ID -- 각 체인 상품 마스터
+    left JOIN ISMSR.dbo.ProductLocalRpt D  on  C.MKTD_BRDCODE = D.SMARTSRCCode -- PM 상품 마스터
+    Left JOIN [ISMSR].[dbo].[CustomerLocalRpt] E on B.pm_oltcode = E.CustomerCode -- PM소매점 마스터
+    left join [CMRRPT].[dbo].[Corner_meta_working] F on E.customercode =  F.custcode and A.pdate = F.pdate -- 코너샵 운영일 데이터(R/C구분자)
+where d.CIGADEVICE = 'CIGARETTES'
+and d.CIGATYPE != 'CSV'
+and d.Company = 'PMK'
+and e.customerstatus = 'A' and e.CustomerTypeCode ='KA' 
+--and a.PDATE between '20240901' and '20240930'
+--and left(a.PDATE, 6) = '202409'
+;
 
---drop table    #temp_event_participant
+
+-- Communication 작업 
 select event_id             ,
               office_desc          ,
               ev_date                    ,
@@ -30,21 +45,30 @@ group by [Dashboard Tier] ;
 -- Hero, Welcome, Welcome+
 
 
--- KA 데이터 확인 
-Select top 10 *
-FROM KAPOS.dbo.POS_DATA A --각 체인별 판매데이터
-    left JOIN KAPOS.dbo.POS_OLT_MAP B ON B.CHAIN_CODE = A.CHAIN_CODE AND B.CHAIN_OLTCODE = A.CHAIN_OLTCODE -- 각 체인 소매점 마스터
-    left JOIN KAPOS.dbo.POS_BRD_MST C ON C.CHAIN_CODE = A.CHAIN_CODE AND C.PROD_ID = A.PROD_ID -- 각 체인 상품 마스터
-    left JOIN ISMSR.dbo.ProductLocalRpt D  on  C.MKTD_BRDCODE = D.SMARTSRCCode -- PM 상품 마스터 
-    Left JOIN [ISMSR].[dbo].[CustomerLocalRpt] E on B.pm_oltcode = E.CustomerCode -- PM소매점 마스터 337,885 rows
-    left join [CMRRPT].[dbo].[Corner_meta_working] F on E.customercode =  F.custcode and A.pdate = F.pdate -- 코너샵 운영일 데이터(R/C구분자)
-Where a.pdate between '20230801' and '20230831'
---and f.corner_type is null ('Corner','POPUP')  -- POPUP : GSE
---and d.cigatype = 'HNB'
---and d.cigadevice = 'Cigarettes'
---and d.Company = ‘PMK’ -- TMO Company : KT&G, JTI, BAT, KIMREE
---and d.ProductSubFamilyCode = 'TEREA' or 'MOBILITYKIT'
---and d.Dvicversion in ('ILUMA MID', 'ILUMA ONE', 'ILUMA PRIME')
+select * , format(GETDATE() , 'yyyyMMdd') as Load_Date
+into cmrrpt.dbo.OMNI_Tier_tmp
+from cmrrpt.dbo.OMNI_Tier;
+
+
+declare @tbname nvarchar(100);
+
+select @tbname = TABLE_NAME 
+from information_schema.tables
+where TABLE_CATALOG ='TMP_POS'
+and TABLE_NAME like 'KA_Inventory_Monthlyclosing_%'
+and limit 1
+order by table_name desc;
+
+
+select *
+from KAPOS.dbo.POS_BRD_MST
+where use_yn = 'Y'; --chain_code 
+
+select *
+from ismsr.dbo.ProductLocalRpt
+where CIGADEVICE ='CIGARETTES'
+and CIGATYPE != 'CSV';
+
 
 
 
@@ -52,12 +76,14 @@ SELECT TOP 10 *
 FROM ISMSRRP.DBO.LocalDCE_Coupon; --KA에서 사용하는 쿠폰(프로모션) 데이터
 
 -- 51,214
-select COUNT(DISTINCT A.OltCode) CNT 
+select top 100 *
 from KAPOS.dbo.POSTAXData A --KA 소매점 발주자료
 	left join KAPOS.dbo.POSTAXCustomer  B on B.OltCode = A.OltCode  --KA 소매점 발주 마스터 84,205
 	left join [KAPOS].[dbo].[POSTAXProduct] C on A.BrdCode = C.BrdCode  --KA 제품 발주 발주자료 1,805
 WHERE LEFT(A.Pdate, 6) = '202409'
 ;
+
+
 
 -- ALL 253690869
 -- 202406 4277567
@@ -75,23 +101,33 @@ where Qty > 0;
 
 -- 19분...ㅠㅠ
 with temp as ( 
-select *, '20240801' StartDate, '20240830' EndDate
-from dbo.OMNI_Tier
+	select *, '20240801' StartDate, '20240830' EndDate
+	from cmrrpt.dbo.OMNI_Tier
 )
-select * -- max([Dashboard Tier]) 
+select top 10 * -- max([Dashboard Tier]) 
 from KAPOS.dbo.POS_DATA a
 	left JOIN KAPOS.dbo.POS_OLT_MAP B ON B.CHAIN_CODE = a.CHAIN_CODE AND B.CHAIN_OLTCODE = a.CHAIN_OLTCODE 
-	join temp C on left(a.PDATE, 6) = left(C.StartDate, 6) and CustomerCode = PM_OLTCODE 
+	join temp C on left(a.PDATE, 6) = left(C.StartDate, 6) and C.CustomerCode = B.PM_OLTCODE 
 where left(a.Pdate, 6) = '202408'
 ;
 
 
-select * 
-from dbo.Agg_POS
-where PM_OLTCODE is not null;
+Select  top 10 *  -- chain_code, chain_oltcode, prod_id, Total_Inventory_Qty
+FROM KAPOS.dbo.POS_DATA A --각 체인별 판매데이터 :
+    left JOIN KAPOS.dbo.POS_OLT_MAP    B ON B.CHAIN_CODE = A.CHAIN_CODE AND B.CHAIN_OLTCODE = A.CHAIN_OLTCODE -- 각 체인 소매점 마스터
+    left JOIN KAPOS.dbo.POS_BRD_MST    C ON C.CHAIN_CODE = A.CHAIN_CODE AND C.PROD_ID = A.PROD_ID -- 각 체인 상품 마스터
+    left JOIN ISMSR.dbo.ProductLocalRpt D  on  C.MKTD_BRDCODE = D.SMARTSRCCode -- PM 상품 마스터
+    Left JOIN [ISMSR].[dbo].[CustomerLocalRpt] E on B.pm_oltcode = E.CustomerCode -- PM소매점 마스터
+--    left join [CMRRPT].[dbo].[Corner_meta_working] F on E.customercode =  F.custcode and A.pdate = F.pdate -- 코너샵 운영일 데이터(R/C구분자)
+    left join CMRRPT.dbo.Inventory_AGG2 g on g.PMCode = e.CustomerCode and d.ENGNAME = g.engname and eomonth(cast([Month] +'01' as date)) = a.PDATE -- Inventory 날짜
+    left join cmrrpt.dbo.OMNI_Tier_tmp h on h.CustomerCode = e.CustomerCode and a.PDATE <= h.Load_Date 
+where d.CIGADEVICE = 'CIGARETTES'
+and d.CIGATYPE != 'CSV'
+and d.Company = 'PMK'
+and e.customerstatus = 'A' and e.CustomerTypeCode ='KA' 
+and [Month] is not null
+;
 
-select * 
-from dbo.Agg_IMS;
 
 
 select * --count(distinct CustomerCode)
@@ -113,8 +149,11 @@ from TMP_POS.dbo.KA_Inventory_Monthlyclosing_240831 a
 where customerstatus = 'A' and CustomerTypeCode ='KA';
 
 
-KAPOS.dbo.POS_OLT_MAP    
+select * 
+from TAX_AGG ta 
+;
 
+ 
 -- 52,190
 -- Inventory
 with Inventory as (

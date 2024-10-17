@@ -183,12 +183,7 @@ from cx.fct_K7_Monthly a
 	left join cx.product_master b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and 4 < len(a.id) and b.CIGATYPE != 'CSV'
 ;
 
--- CU 갱신
-update a
-set Pack_qty =  buy_ct * cast(SAL_QNT as decimal(18,10))
-from cu.Fct_BGFR_PMI_Monthly a
-	left join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and 4 < len(a.id) and b.CIGATYPE != 'CSV'
-;
+
 
 
 select 
@@ -207,4 +202,4 @@ from cx.K7_202406 a
 where  id ='24A271EF18CC1080BB16E9D1A9D12C2238E907F7EEFE08D47A0975F4F6AE6EA6'
 ;
 
-
+select * from 

@@ -153,7 +153,7 @@ TEREA_Purchasers as (
 	from temp t
 		join cx.fct_K7_Monthly a on a.id = t.id  and  a.YYYYMM = t.YYYYMM
 		join cx.product_master b on a.product_code = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-	where t.YYYYMM = '202408'
+	where t.YYYYMM = '202409'
 	and
 	   exists (
 	       -- (2) 직전 3개월 동안 구매이력이 있는지 확인
@@ -172,7 +172,7 @@ TEREA_Purchasers as (
 	       count(distinct b.engname) < 11 -- (3) SKU 11종 미만
 	   and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만
 )   
-insert into cx.agg_LPoint_TEREA_Total_Sourcing
+--insert into cx.agg_LPoint_TEREA_Total_Sourcing
 select 
 	t.YYYYMM, t.id,
 	max(a.gender) gender, 
@@ -281,6 +281,8 @@ group by t.YYYYMM, t.id
 --order by t.YYYYMM, t.id
 ;
 
+select count(*) from cx.product_master ;
+
 
 -- 월별 신규 테리어 유입 대상자 추출 
 select YYYYMM, count(*) 
@@ -293,7 +295,10 @@ from cx.agg_LPoint_TEREA_Total_Sourcing
 group by id 
 having count(*) > 1;
 
-
+SELECT DISTINCT ProductFamilyCode, Company 
+from cx.product_master pm 
+where CIGATYPE = 'CC'
+and CIGADEVICE ='CIGARETTES';
 
 
 -- 엑셀 시트 데이터 반영 작업
@@ -418,7 +423,40 @@ ORDER BY YYYYMM
 ;
 
 
+-- CC인 경우 TMO / Brand Family 조회
+(
+SELECT DISTINCT ProductFamilyCode, Company 
+from cx.product_master pm 
+where CIGATYPE = 'CC'
+and CIGADEVICE ='CIGARETTES'
+)
+;
 
+select YYYYMM,
+    SUM([BAT]) AS BAT,
+    SUM([JTI]) AS JTI,
+    SUM([KTG]) AS KTG,
+    SUM([PMK]) AS PMK
+FROM cx.agg_LPoint_TEREA_Total_Sourcing t	
+GROUP BY YYYYMM 
+ORDER BY YYYYMM
+;
+
+select 
+    SUM([BAT]) AS BAT,
+    SUM([JTI]) AS JTI,
+    SUM([KTG]) AS KTG,
+    SUM([PMK]) AS PMK,
+	count(distinct case when b.cigatype = 'HnB' and FLAVORSEG_type3 ='Regular' then t.id end ) 'HnB Regular'
+from cx.agg_LPoint_TEREA_Total_Sourcing  t
+	join cx.fct_K7_Monthly a on a.id = t.id 
+		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
+				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
+	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND b.cigatype = 'CC'
+where 1=1
+group BY t.YYYYMM, ProductFamilyCode 
+;
+;
 
 -- Pivot 작업 필요
 
@@ -453,6 +491,24 @@ from cx.agg_LPoint_TEREA_Total_Sourcing  t
 		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
 				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
 	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
+group BY 	    
+	t.YYYYMM, 
+	t.id
+;
+
+
+-- user_past_type HEETS
+select  
+	t.YYYYMM, 
+	t.id,
+	max(case when b.ProductSubFamilyCode = 'HEETS' and b.company = 'PMK' then 1 else 0 end) HEETS_Purchased,
+	max(case when b.cigatype='CC' then 1 else 0 end) CC_Purchased,
+	max(case when b.cigatype='HnB' and b.company != 'PMK' then 1 else 0 end) CompHnB_Purchased
+from cx.agg_LPoint_TEREA_Total_Sourcing  t
+	join cx.fct_K7_Monthly a on t.id = a.id 
+		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
+				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
+	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE = 'CIGARETTES' AND  b.cigatype != 'CSV' 
 group BY 	    
 	t.YYYYMM, 
 	t.id
@@ -519,3 +575,4 @@ group by YYYYMM,
     CASE WHEN CC_Purchased = 1 THEN ' + CC' ELSE '' END +
     CASE WHEN IQOS_Purchased = 1 THEN ' + IQOS' ELSE '' END 
 ;
+	
