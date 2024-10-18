@@ -338,3 +338,7 @@ end;
 
 
 
+
+select * 
+from [ISMSR].[dbo].[CustomerLocalRpt];
+
