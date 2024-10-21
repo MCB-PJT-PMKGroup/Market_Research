@@ -457,6 +457,49 @@ group BY t.YYYYMM, ProductFamilyCode , b.company
 ;
 
 
+
+-- Total CC TMO / Brand Family 조회
+select 
+	t.YYYYMM, ProductFamilyCode, b.company,
+    count(distinct t.id ) n
+from cx.seven11_user_3month_list t
+	join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
+	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND b.cigatype = 'CC'
+where t.YYYYMM >= '202211'
+group BY t.YYYYMM, ProductFamilyCode , b.company
+;
+
+
+-- Total CC / HnB / Mixed 구매자수 구하기
+with temp as (
+	select
+		t.YYYYMM, 
+		t.id, 
+	    CASE 
+	        WHEN SUM(CASE WHEN b.cigatype = 'CC' and a.YYYYMM = t.YYYYMM THEN 1 ELSE 0 END) > 0 
+	         AND SUM(CASE WHEN b.cigatype = 'HnB' and a.YYYYMM = t.YYYYMM THEN 1 ELSE 0 END) > 0 
+	        THEN 'Mixed' 
+	        ELSE MAX(b.cigatype)  -- CC 또는 HnB가 없을 경우 가장 큰 값을 사용
+	    END AS cigatype
+    from cx.seven11_user_3month_list t
+	join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
+	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND b.cigatype != 'CSV'
+	where t.YYYYMM >= '202211'
+	group BY t.YYYYMM, t.id
+)
+select 
+	t.YYYYMM,
+	count(distinct t.id) total_Purchaser_Cnt,
+	count(distinct case when t.cigatype ='CC' then t.id end ) 'CC',
+	count(distinct case when t.cigatype ='HnB' then t.id end ) 'HnB',
+	count(distinct case when t.cigatype ='Mixed' then t.id end ) 'Mixed'
+from temp t
+group BY t.YYYYMM
+;
+
+
+
+
 -- Pivot 작업 필요
 
 
@@ -582,3 +625,4 @@ group by YYYYMM,
     CASE WHEN IQOS_Purchased = 1 THEN ' + IQOS' ELSE '' END 
 ;
 	
+

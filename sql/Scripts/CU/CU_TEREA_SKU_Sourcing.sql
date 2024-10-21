@@ -144,6 +144,7 @@ where id ='00c32f336e2adf6f183ff4e5fc60d62f212c8528fde3fa57a8635ffec2eca7e3';
 --TEREA YUGEN				9,956
 
 
+
 -- CU sourcing_M1 모수 테이블
 with temp as( 
 select * 
@@ -165,7 +166,7 @@ TEREA_Purchasers as (
 	from temp t
 		join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id  and  a.YYYYMM = t.YYYYMM
 		join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-	where t.YYYYMM >= '202211'
+	where t.YYYYMM >= '202407'
 	and
 	   exists (
 	       -- (2) 직전 3개월 동안 구매이력이 있는지 확인

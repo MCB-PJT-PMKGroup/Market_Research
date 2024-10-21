@@ -202,4 +202,79 @@ from cx.K7_202406 a
 where  id ='24A271EF18CC1080BB16E9D1A9D12C2238E907F7EEFE08D47A0975F4F6AE6EA6'
 ;
 
-select * from 
+drop table cu.cu_master_tmp ;
+
+
+select max(YYYYMM)
+from cu.user_3month_list ;
+
+
+
+select *
+from cu.Fct_BGFR_PMI_Monthly  
+where YYYYMM = '202408';
+
+
+
+-- BPDA.cu.user_3month_list definition
+
+-- Drop table
+
+-- DROP TABLE BPDA.cu.user_3month_list;
+
+CREATE TABLE BPDA.cu.cu_user_3month_list (
+	id nvarchar(100) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	YYYYMM nvarchar(10) COLLATE Korean_Wansung_CI_AS NOT NULL
+);
+
+
+insert into cu.cu_user_3month_list
+select * from cu.output22 ;
+
+
+select id, YYYYMM, count(*)
+from cu.cu_user_3month_list
+group by id, YYYYMM
+having count(*)>1;
+
+
+
+TRUNCATE table  cu.user_3month_list;
+
+drop view cu.v_user_3month_list;
+
+create view cu.v_user_3month_list as
+select a.YYYYMM, a.id, max(row_id) row_id
+from  cu.Fct_BGFR_PMI_Monthly a 
+	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
+where a.YYYYMM >= '202302'
+and
+   exists (
+       -- (2) 직전 3개월 동안 구매이력이 있는지 확인
+       select 1
+       from cu.Fct_BGFR_PMI_Monthly x
+       		join cu.dim_product_master y on x.ITEM_CD = y.PROD_ID and y.CIGADEVICE = 'CIGARETTES' and y.cigatype != 'CSV'
+       where
+           x.YYYYMM between convert(nvarchar(6), dateadd(month, -3, a.YYYYMM + '01'), 112)
+           				and convert(nvarchar(6), dateadd(month, -1, a.YYYYMM + '01'), 112)
+       and a.id = x.id
+       group by x.YYYYMM, x.id
+	   having count(distinct y.engname) < 11 and sum(x.Pack_qty) < 61.0 -- (3) 구매 SKU 11종 미만 & 팩 수량 61개 미만
+   )
+group by a.YYYYMM, a.id 
+having
+       count(distinct b.engname) < 11 -- (3) SKU 11종 미만
+   and sum(a.Pack_qty) < 61.0 -- (3) 구매 팩 수량 61개 미만;
+
+  
+  insert into cu.user_3month_list 
+select id, YYYYMM from cu.v_user_3month_list
+where YYYYMM >= '202302';
+
+
+
+
+select id,YYYYMM, count(*) 
+from  cu.user_3month_list
+group by id,YYYYMM
+having count(*)>1;

@@ -2,7 +2,7 @@
 
 CREATE TABLE BPDA.cu.dim_product_master (
 	PROD_ID nvarchar(50) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	ENGNAME nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
+	ENGNAME nvarchar(50) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	ProductDescription nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	ProductFamilyCode nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	CIGADEVICE nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
@@ -17,69 +17,80 @@ CREATE TABLE BPDA.cu.dim_product_master (
 	TARINFO decimal(18,10) NULL,
 	Company nvarchar(50) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	SAL_QNT decimal(18,10) NOT NULL,
-	ProductSubFamilyCode nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
+	ProductSubFamilyCode nvarchar(50) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	Productcode nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	MKTD_BRDCODE nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	SMARTSRCCode nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	FLAVORSEG_type3 varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	New_TARSEGMENTAT varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
 	FLAVORSEG_type6 varchar(50) COLLATE Korean_Wansung_CI_AS NULL,
-	CONSTRAINT PK_dim_product_master PRIMARY KEY (PROD_ID)
+	CONSTRAINT dim_product_master_pk PRIMARY KEY (PROD_ID,ProductSubFamilyCode,ENGNAME)
 );
 
 
+
+select *
+from  cu.dim_product_master 
+where FLAVORSEG_type3 is null
+and FLAVORSEG is not null;
+
+select *
+from  cu.dim_product_master 
+where New_TARSEGMENTAT is null
+and TARSEGMENTAT is not null;
+
 -- 비어있는 data 찾고 SKU 채우기
-insert into cu.dim_product_master 
+--insert into cu.dim_product_master 
 select a.PROD_ID,a.ENGNAME, a.ProductDescription,a.ProductFamilyCode,a.CIGADEVICE,a.CIGATYPE,a.FLAVORSEG,a.LENGTHSEG,a.MENTHOLINDI,a.DELISTYN,a.THICKSEG,a.TARSEGMENTAT,a.CAPSULEYN,a.TARINFO,a.Company,a.SAL_QNT,a.ProductSubFamilyCode,a.Productcode,a.MKTD_BRDCODE,a.SMARTSRCCode,
 		CASE 
-	    WHEN b.FLAVORSEG like 'FS1:%' THEN 'Regular'
-	    WHEN b.FLAVORSEG like 'FS2:%' THEN 'Fresh'
-	    WHEN b.FLAVORSEG like 'FS3:%' THEN 'Fresh'
-	    WHEN b.FLAVORSEG like 'FS4:%' THEN 'New Taste'
-	    WHEN b.FLAVORSEG like 'FS5:%' THEN 'Fresh'
-	    WHEN b.FLAVORSEG like 'FS7:%' THEN 'New Taste'
-	    WHEN b.FLAVORSEG like 'FS8:%' THEN 'New Taste'
-	    WHEN b.FLAVORSEG like 'FS9:%' THEN 'New Taste'
-	    WHEN b.FLAVORSEG like 'FS10:%' THEN 'New Taste'
-	    WHEN b.FLAVORSEG like 'FS11:%' THEN 'Fresh'
-	    WHEN b.FLAVORSEG like 'FS12:%' THEN 'Fresh'
-	    WHEN b.FLAVORSEG like 'FS13:%' THEN 'Fresh'
-	    WHEN b.FLAVORSEG like 'FS14:%' THEN 'New Taste'
-	    when b.FLAVORSEG like 'Aftercut (New%' then 'New Taste'
-	    when b.FLAVORSEG like 'Regular Fresh' then 'Fresh' 
-	    when b.FLAVORSEG like 'Regular to Fresh' then 'Fresh'
-		when b.FLAVORSEG like 'Regular to New Taste' then 'New Taste'
-		when b.FLAVORSEG like 'Fresh to New Taste' then 'New Taste'
-    	ELSE b.FLAVORSEG 
-    end,
+	    WHEN a.FLAVORSEG like 'FS1:%' THEN 'Regular'
+	    WHEN a.FLAVORSEG like 'FS2:%' THEN 'Fresh'
+	    WHEN a.FLAVORSEG like 'FS3:%' THEN 'Fresh'
+	    WHEN a.FLAVORSEG like 'FS4:%' THEN 'New Taste'
+	    WHEN a.FLAVORSEG like 'FS5:%' THEN 'Fresh'
+	    WHEN a.FLAVORSEG like 'FS7:%' THEN 'New Taste'
+	    WHEN a.FLAVORSEG like 'FS8:%' THEN 'New Taste'
+	    WHEN a.FLAVORSEG like 'FS9:%' THEN 'New Taste'
+	    WHEN a.FLAVORSEG like 'FS10:%' THEN 'New Taste'
+	    WHEN a.FLAVORSEG like 'FS11:%' THEN 'Fresh'
+	    WHEN a.FLAVORSEG like 'FS12:%' THEN 'Fresh'
+	    WHEN a.FLAVORSEG like 'FS13:%' THEN 'Fresh'
+	    WHEN a.FLAVORSEG like 'FS14:%' THEN 'New Taste'
+	    when a.FLAVORSEG like 'Aftercut (New%' then 'New Taste'
+	    when a.FLAVORSEG like 'Regular Fresh' then 'Fresh' 
+	    when a.FLAVORSEG like 'Regular to Fresh' then 'Fresh'
+		when a.FLAVORSEG like 'Regular to New Taste' then 'New Taste'
+		when a.FLAVORSEG like 'Fresh to New Taste' then 'New Taste'
+    	ELSE a.FLAVORSEG 
+    end FLAVORSEG_type3,
 	CASE 
-    	when b.TARSEGMENTAT like 'TS1:%' then 'FF'
-    	when b.TARSEGMENTAT like 'TS2:%' then 'LTS'
-    	when b.TARSEGMENTAT like 'TS3:%' then 'ULT'
-    	when b.TARSEGMENTAT like 'TS4:%' then '1MG'
-    	when b.TARSEGMENTAT like 'TS5:%' then 'Below 1MG'
-    	else b.TARSEGMENTAT 
-    END,
+    	when a.TARSEGMENTAT like 'TS1:%' then 'FF'
+    	when a.TARSEGMENTAT like 'TS2:%' then 'LTS'
+    	when a.TARSEGMENTAT like 'TS3:%' then 'ULT'
+    	when a.TARSEGMENTAT like 'TS4:%' then '1MG'
+    	when a.TARSEGMENTAT like 'TS5:%' then 'Below 1MG'
+    	else a.TARSEGMENTAT 
+    END New_TARSEGMENTAT,
 	CASE 
-	    WHEN b.FLAVORSEG like 'FS1:%' 				THEN 'Regular'
-	    WHEN b.FLAVORSEG like 'FS2:%' 				THEN 'Regular to Fresh'
-	    WHEN b.FLAVORSEG like 'FS3:%' 				THEN 'Regular to Fresh'
-	    WHEN b.FLAVORSEG like 'FS4:%' 				THEN 'Regular to New Taste'
-	    WHEN b.FLAVORSEG like 'FS5:%' 				THEN 'Fresh to Fresh'
-	    WHEN b.FLAVORSEG like 'FS7:%' 				THEN 'New Taste'
-	    WHEN b.FLAVORSEG like 'FS8:%' 				THEN 'Fresh to New Taste'
-	    WHEN b.FLAVORSEG like 'FS9:%' 				THEN 'Fresh to New Taste'
-	    WHEN b.FLAVORSEG like 'FS10:%' 				THEN 'Regular to New Taste'
-	    WHEN b.FLAVORSEG like 'FS11:%' 				THEN 'Fresh to Fresh'
-	    WHEN b.FLAVORSEG like 'FS12:%' 				THEN 'Regular to Fresh'
-	    WHEN b.FLAVORSEG like 'FS13:%' 				THEN 'Regular Fresh'
-	    WHEN b.FLAVORSEG like 'FS14:%' 				THEN 'New Taste'
-	    when b.FLAVORSEG like 'Aftercut (New%' 		then 'New Taste'
-	    when b.FLAVORSEG like 'Regular Fresh' 		then 'Regular Fresh' 
-	    when b.FLAVORSEG like 'Regular to Fresh' 	then 'Regular to Fresh'
-		when b.FLAVORSEG like 'Regular to New Taste' then 'Regular to New Taste'
-		when b.FLAVORSEG like 'Fresh to New Taste'	then 'Fresh to New Taste'
-    	ELSE b.FLAVORSEG 
+	    WHEN a.FLAVORSEG like 'FS1:%' 				THEN 'Regular'
+	    WHEN a.FLAVORSEG like 'FS2:%' 				THEN 'Regular to Fresh'
+	    WHEN a.FLAVORSEG like 'FS3:%' 				THEN 'Regular to Fresh'
+	    WHEN a.FLAVORSEG like 'FS4:%' 				THEN 'Regular to New Taste'
+	    WHEN a.FLAVORSEG like 'FS5:%' 				THEN 'Fresh to Fresh'
+	    WHEN a.FLAVORSEG like 'FS7:%' 				THEN 'New Taste'
+	    WHEN a.FLAVORSEG like 'FS8:%' 				THEN 'Fresh to New Taste'
+	    WHEN a.FLAVORSEG like 'FS9:%' 				THEN 'Fresh to New Taste'
+	    WHEN a.FLAVORSEG like 'FS10:%' 				THEN 'Regular to New Taste'
+	    WHEN a.FLAVORSEG like 'FS11:%' 				THEN 'Fresh to Fresh'
+	    WHEN a.FLAVORSEG like 'FS12:%' 				THEN 'Regular to Fresh'
+	    WHEN a.FLAVORSEG like 'FS13:%' 				THEN 'Regular Fresh'
+	    WHEN a.FLAVORSEG like 'FS14:%' 				THEN 'New Taste'
+	    when a.FLAVORSEG like 'Aftercut (New%' 		then 'New Taste'
+	    when a.FLAVORSEG like 'Regular Fresh' 		then 'Regular Fresh' 
+	    when a.FLAVORSEG like 'Regular to Fresh' 	then 'Regular to Fresh'
+		when a.FLAVORSEG like 'Regular to New Taste' then 'Regular to New Taste'
+		when a.FLAVORSEG like 'Fresh to New Taste'	then 'Fresh to New Taste'
+    	ELSE a.FLAVORSEG 
     end as FLAVORSEG_type6
 from cu.cu_master_tmp a
 	left join  cu.dim_product_master b on a.PROD_ID = b.PROD_ID 
