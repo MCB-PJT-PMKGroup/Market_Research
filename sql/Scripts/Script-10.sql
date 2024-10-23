@@ -278,3 +278,31 @@ select id,YYYYMM, count(*)
 from  cu.user_3month_list
 group by id,YYYYMM
 having count(*)>1;
+
+
+
+
+
+
+with temp as (
+	select
+		t.YYYYMM, 
+		t.id
+    from cx.seven11_user_3month_list t
+		join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
+		join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND b.cigatype != 'CSV'
+	where t.YYYYMM >= '202211'
+	group BY t.YYYYMM, t.id
+	having sum(pack_qty) > 1
+)
+select 
+	t.YYYYMM, ProductFamilyCode, b.company,
+    count(distinct t.id ) n
+from temp t
+	join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
+	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND b.cigatype = 'CC'
+where 1=1
+group BY t.YYYYMM, ProductFamilyCode , b.company
+;
+
+

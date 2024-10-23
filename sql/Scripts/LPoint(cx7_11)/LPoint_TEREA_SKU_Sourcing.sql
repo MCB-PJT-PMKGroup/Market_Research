@@ -45,7 +45,7 @@ select t.YYYYMM, t.id,	eng_name
 from temp t
 	join cx.fct_K7_Monthly a on a.id = t.id  and  a.YYYYMM = t.YYYYMM
 	join cx.product_master b on a.Product_code = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-where t.YYYYMM >= '202408'
+where t.YYYYMM >= '202401'
 and
    exists (
        -- (2) 직전 3개월 동안 구매이력이 있는지 확인
@@ -92,6 +92,7 @@ and x.id = '01E685679696C9867F8FF57E04863525BC7B8933FBC303B252898F72C83C2A40'
 order by de_dt; 
 
 
+
 -- 데이터 검증 끝
 
 
@@ -123,7 +124,7 @@ from (
        cx.fct_K7_Monthly a
        join cx.product_master b on a.Product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
    where 1=1
-   and b.ProductFamilyCode = 'MLB' and  engname ='Marlboro Vista Summer Splash'
+   and b.ProductFamilyCode = 'MLB' and  engname ='Marlboro Vista Blossom Mist'
    group by YYYYMM , a.id
 ) as t
 where rn = 1
@@ -134,7 +135,7 @@ TEREA_Purchasers as (
 	from temp t
 		join cx.fct_K7_Monthly a on a.id = t.id  and  a.YYYYMM = t.YYYYMM
 		join cx.product_master b on a.Product_code = b.PROD_ID  and b.CIGADEVICE = 'CIGARETTES' and b.cigatype != 'CSV'
-	where t.YYYYMM >= '202408'
+	where t.YYYYMM >= '202401'
 	and
 	   exists (
 	       -- (2) 직전 3개월 동안 구매이력이 있는지 확인

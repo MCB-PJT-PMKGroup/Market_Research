@@ -443,7 +443,21 @@ ORDER BY YYYYMM
 ;
 
 
--- CC인 경우 TMO / Brand Family 조회
+
+-- CC인 경우 Company pivot 조회
+select 
+	t.YYYYMM,  b.company,
+    count(distinct t.id ) n
+from cx.agg_LPoint_TEREA_Total_Sourcing  t
+	join cx.fct_K7_Monthly a on a.id = t.id 
+		and a.YYYYMM BETWEEN CONVERT(NVARCHAR(6), DATEADD(MONTH, -3, t.YYYYMM+'01'), 112)
+				 	     AND CONVERT(NVARCHAR(6), DATEADD(MONTH, -1, t.YYYYMM+'01'), 112)	
+	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND b.cigatype = 'CC'
+where 1=1
+group BY t.YYYYMM, b.company
+;
+
+-- CC인 경우 TMO / Brand Family pivot 조회
 select 
 	t.YYYYMM, ProductFamilyCode, b.company,
     count(distinct t.id ) n
@@ -458,17 +472,6 @@ group BY t.YYYYMM, ProductFamilyCode , b.company
 
 
 
--- Total CC TMO / Brand Family 조회
-select 
-	t.YYYYMM, ProductFamilyCode, b.company,
-    count(distinct t.id ) n
-from cx.seven11_user_3month_list t
-	join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
-	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND b.cigatype = 'CC'
-where t.YYYYMM >= '202211'
-group BY t.YYYYMM, ProductFamilyCode , b.company
-;
-
 
 -- Total CC / HnB / Mixed 구매자수 구하기
 with temp as (
@@ -482,10 +485,11 @@ with temp as (
 	        ELSE MAX(b.cigatype)  -- CC 또는 HnB가 없을 경우 가장 큰 값을 사용
 	    END AS cigatype
     from cx.seven11_user_3month_list t
-	join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
-	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND b.cigatype != 'CSV'
+		join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
+		join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND b.cigatype != 'CSV'
 	where t.YYYYMM >= '202211'
 	group BY t.YYYYMM, t.id
+	having sum(pack_qty) > 1
 )
 select 
 	t.YYYYMM,
@@ -496,6 +500,31 @@ select
 from temp t
 group BY t.YYYYMM
 ;
+
+
+-- Total CC TMO / Brand Family 조회
+with temp as (
+	select
+		t.YYYYMM, 
+		t.id
+    from cx.seven11_user_3month_list t
+		join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
+		join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND b.cigatype != 'CSV'
+	where t.YYYYMM >= '202211'
+	group BY t.YYYYMM, t.id
+	having sum(pack_qty) > 1
+)
+select 
+	t.YYYYMM, ProductFamilyCode, b.company,
+    count(distinct t.id ) n
+from temp t
+	join cx.fct_K7_Monthly a on a.id = t.id and a.YYYYMM = t.YYYYMM
+	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND b.cigatype = 'CC'
+where t.YYYYMM >= '202211'
+group BY t.YYYYMM, ProductFamilyCode , b.company
+;
+;
+
 
 
 

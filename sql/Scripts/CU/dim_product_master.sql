@@ -41,7 +41,7 @@ and TARSEGMENTAT is not null;
 
 -- 비어있는 data 찾고 SKU 채우기
 --insert into cu.dim_product_master 
-select a.PROD_ID,a.ENGNAME, a.ProductDescription,a.ProductFamilyCode,a.CIGADEVICE,a.CIGATYPE,a.FLAVORSEG,a.LENGTHSEG,a.MENTHOLINDI,a.DELISTYN,a.THICKSEG,a.TARSEGMENTAT,a.CAPSULEYN,a.TARINFO,a.Company,a.SAL_QNT,a.ProductSubFamilyCode,a.Productcode,a.MKTD_BRDCODE,a.SMARTSRCCode,
+select a.PROD_ID,a.ENGNAME, a.ProductDescription,a.ProductFamilyCode,a.CIGADEVICE,a.CIGATYPE,a.FLAVORSEG,a.LENGTHSEG,a.MENTHOLINDI,a.DELISTYN,a.THICKSEG,a.TARSEGMENTAT,a.CAPSULEYN,a.TARINFO,trim(a.company),a.SAL_QNT,a.ProductSubFamilyCode,a.Productcode,a.MKTD_BRDCODE,a.SMARTSRCCode,
 		CASE 
 	    WHEN a.FLAVORSEG like 'FS1:%' THEN 'Regular'
 	    WHEN a.FLAVORSEG like 'FS2:%' THEN 'Fresh'
@@ -95,6 +95,11 @@ select a.PROD_ID,a.ENGNAME, a.ProductDescription,a.ProductFamilyCode,a.CIGADEVIC
 from cu.cu_master_tmp a
 	left join  cu.dim_product_master b on a.PROD_ID = b.PROD_ID 
 where b.prod_id is null;
+
+
+-- Company Trim 제거
+update cu.dim_product_master 
+set company = trim(company);
 
 
 
