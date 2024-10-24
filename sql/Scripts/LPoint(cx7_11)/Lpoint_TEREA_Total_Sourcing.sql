@@ -457,6 +457,7 @@ where 1=1
 group BY t.YYYYMM, b.company
 ;
 
+
 -- CC인 경우 TMO / Brand Family pivot 조회
 select 
 	t.YYYYMM, ProductFamilyCode, b.company,

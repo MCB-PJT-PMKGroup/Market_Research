@@ -23,16 +23,6 @@ from CMRRPT.dbo.OMNI_Tier_tmp2 a
 where 1=1
 and a.to_date is null;
 
---20240621
---delete 
-from CMRRPT.dbo.OMNI_Tier_tmp2
-where load_date is null;
-
-
-select *
-FROM CMRRPT.dbo.OMNI_Tier_tmp
-where Load_Date = '20240926';
-
 
 -- CHAIN_CODE 4개 밖에 안됨
 -- CHAIN_OLTCODE 52,222 개
@@ -80,28 +70,77 @@ and d.ProductCode is not null
 ;
 
 
+select 
+	ProductDescription, ENGNAME , sum((A.SAL_QTY*C.SAL_QNT)) POS_Qty
+--into CMRRPT.dbo.POS_DATA_2024
+from KAPOS.dbo.POS_DATA A --각 체인별 판매데이터 (임시)
+    left JOIN KAPOS.dbo.POS_OLT_MAP    B ON B.CHAIN_CODE = A.CHAIN_CODE AND B.CHAIN_OLTCODE = A.CHAIN_OLTCODE -- 각 체인 소매점 마스터
+    left JOIN KAPOS.dbo.POS_BRD_MST    C ON C.CHAIN_CODE = A.CHAIN_CODE AND C.PROD_ID = A.PROD_ID -- 각 체인 상품 마스터
+    left JOIN ISMSR.dbo.ProductLocalRpt D on C.MKTD_BRDCODE = D.SMARTSRCCode and D.company = 'PMK' -- PM 상품 마스터
+	LEFT JOIN [ISMSR].[dbo].[CustomerLocalRpt] E on B.pm_oltcode = E.CustomerCode  and CustomerTypeCode = 'KA' and CustomerStatus = 'A' 
+	left join OMNI_Tier_tmp t on E.CustomerCode = t.CustomerCode and A.PDATE BETWEEN t.Load_date and  t.to_date
+where 1=1
+and a.pdate between '20240901' and '20240931'
+and d.ProductSubFamilyCode = 'MOBILITYKIT'
+and e.CustomerCode is not null 
+and d.ProductCode is not null
+group by ProductDescription, ENGNAME
+
+
+-- TAX AGG
+select Pdate, (A.SalesQty * C.Qty) as tax_qty, A.OltCode, A.BrdCode, B.OltName, B.CustomerCode, C.ProductCode, D.ENGNAME, D.CIGATYPE, D.Company, A.ChnInfo
+from KAPOS.dbo.POSTAXData A
+left join KAPOS.dbo.POSTAXCustomer B on B.OltCode = A.OltCode
+left join KAPOS.dbo.POSTAXProduct C on A.BrdCode = C.BrdCode and C.ChnInfo = A.ChnInfo
+left join ISMSR.dbo.ProductLocalRpt D on C.ProductCode = D.ProductCode
+left join ISMSR.dbo.CustomerLocalRpt E on E.CustomerCode = B.CustomerCode
+where left(A.Pdate, 6) = '202409'
+and D.CIGADEVICE = 'CIGARETTES'
+and D.Company = 'PMK'
+and E.CustomerTypeCode = 'KA' and CustomerStatus = 'A' 
+
+
+-- Inventory  AGG 2
+-- 4,928,670
+with Inventory as (
+  select [Month], PMCode, SKU, Inventory_qty, Chaincode
+    from TMP_POS.dbo.KA_Inventory_Monthlyclosing_240831
+  unpivot (Inventory_qty for SKU in (MFKSFT,MMEDFT,MBVTG,MLBGLD,MBTOUCH,MLBULT,MBGDULT,MBZGFU,MBZGDBL,MBZGMIX,MBHYB5,MBHYB1,MBTWIST,MBKSIBL,MBKSIB1,MBMTHFT,MWMTHFT,MLBSHUF,MLBVTS,MLBVTP,MLBVFM,MLBSSP,MLBBSM,MLBVGS,MBZADSS,MBFP,PLTKSB,PLTMLD,PLTHYB5,PLTHYB1,PLTRP,PLHYSS1,NPLHYSS1,PLTSSRD,PLTSSBL,PLTSSON,PLTSSCF,PLTDUAL,PLTFRS,PLTONE,PLTMBB,PLT03,PLTCAR5,PLTSPL,PLTTWIS,PLTDBW,VASLT,VASLTUL,VSONE,VASLTIN,VSRSVE,VSSS,VSSULT,VSSLTS,VSSSMTH,VSSONE,VSSCF4,VSSCF1,VSSSRFN,OASONE,OASMTH,LARKONE,LARKSS1,HGRLB20,HBLLB20,HAMLB20,HSVLB20,HPRLB20,HGRZG20,HGDLB20,HYLLB20,HBZLB20,HTQLB20,HSISE20,HSUBR20,HCDLB20,HNOOR20,HAMMI20,HYUGE20,HBLGR20,HBLPP20,HSAWA20,TEGREEN,TEBLUE,TEAMBER,TESILVE,TEPURWA,TEGRNZG,TESUMWA,TEYUGEN,TEBLKGR,TEBLKPU,TEBLKYL,TEOASPR,TESUNPR,TEABPL,TESTAPR,TERUSET,TETEAK) ) as unpivo
+)
+--insert into CMRRPT.dbo.Inventory_AGG2 (Month, PMCode, SKU, ENGNAME, Total_Inventory_Qty, Chaincode)
+select a.Month, a.PMCode, a.SKU, b.ENGNAME, Inventory_qty, a.Chaincode
+from  Inventory a
+  join ISMSR.dbo.ProductLocalrpt b on a.SKU COLLATE KOREAN_WANSUNG_CS_AS_WS = b.Productcode COLLATE KOREAN_WANSUNG_CS_AS_WS
+
+truncate table CMRRPT.dbo.Inventory_AGG2;
+
+
 -- AGG_Availability_Daily
 select  * ,
-	sum(Total_Inventory_Qty + final_qty - SAL_QTY) over (partition by PMCode, ProductCode order by Date) as daily_inv
+	sum(coalesce(Total_Inventory_Qty, 0) + coalesce(final_qty, 0) - coalesce(SAL_QTY, 0) ) over (partition by PMCode, ProductCode order by Date) as daily_inv
 FROM 
 ( 
-	select  top 100
+	select top 10
 		coalesce(A.Month, B.Pdate, C.PDATE) as Date, 
 		coalesce(A.PMCode, B.CustomerCode, C.CustomerCode) as PMCode, 
 		coalesce(A.SKU, B.ProductCode, C.ProductCode) as ProductCode, 
-		sum(A.Total_Inventory_Qty) Total_Inventory_Qty,
+		sum(A.Total_Inventory_Qty ) Total_Inventory_Qty,
 		sum(B.final_qty) final_qty, 
-		sum(C.SAL_QTY)	SAL_QTY
+		sum(C.SAL_QTY )	SAL_QTY
 	from CMRRPT.dbo.Inventory_AGG2	A
 		full outer join CMRRPT.dbo.TAX_AGG 	B on B.CustomerCode = A.PMCode and B.ProductCode = A.SKU and A.Month = B.Pdate and CustomerCode != ''
 		full outer join CMRRPT.dbo.POS_DATA_2024 C on C.CustomerCode = A.PMCode and C.ProductCode = A.SKU and C.PDATE = A.Month
-	where PMCode != '?????'
-	and coalesce(A.Month, B.Pdate, C.PDATE) = '20240913'
+	where 
+		left(coalesce(A.Month, B.Pdate, C.PDATE), 6) = '202409'
 	and coalesce(A.PMCode, B.CustomerCode, C.CustomerCode) = '3000201'
 	and coalesce(A.SKU, B.ProductCode, C.ProductCode) = 'MBKSIBL'
+--	and PMCode != '?????'
 	group by coalesce(A.Month, B.Pdate, C.PDATE), coalesce(A.PMCode, B.CustomerCode, C.CustomerCode), coalesce(A.SKU, B.ProductCode, C.ProductCode)
 ) t
 ; 
+
+
+select * from dbo.AGG_Availability_Daily
 
 
 select * 
@@ -150,12 +189,34 @@ from CMRRPT.dbo.POS_DATA_2024;
 select * FROM OMNI_Tier_tmp 
 where CustomerCode ='9004197';
 
-select *
-from dbo.TAX_AGG a
-	full outer join dbo.POS_DATA_2024 b on a.OltCode  = b.CHAIN_OLTCODE 
-where 1=1 
-and b.CHAIN_OLTCODE is null 
-and a.OltCode is null;
+
+
+select  * ,
+ sum(coalesce(Total_Inventory_Qty, 0) + coalesce(final_qty, 0) - coalesce(SAL_QTY, 0) ) over (partition by PMCode, ProductCode order by Date) as daily_inv
+FROM 
+( 
+ select
+  coalesce(A.Month, B.Pdate, C.PDATE) as Date, 
+  coalesce(A.PMCode, B.CustomerCode, C.CustomerCode) as PMCode, 
+  coalesce(A.SKU, B.ProductCode, C.ProductCode) as ProductCode, 
+  sum(A.Total_Inventory_Qty ) Total_Inventory_Qty,
+  sum(B.final_qty) final_qty, 
+  sum(C.SAL_QTY ) SAL_QTY,
+  C.Tier
+ from CMRRPT.dbo.Inventory_AGG2 A
+  full outer join CMRRPT.dbo.TAX_AGG  B on B.CustomerCode = A.PMCode and B.ProductCode = A.SKU and A.Month = B.Pdate and CustomerCode != ''
+  full outer join CMRRPT.dbo.POS_DATA_2024 C on C.CustomerCode = A.PMCode and C.ProductCode = A.SKU and C.PDATE = A.Month
+ /*
+ where 
+  left(coalesce(A.Month, B.Pdate, C.PDATE), 6) = '202409'
+ and coalesce(A.PMCode, B.CustomerCode, C.CustomerCode) = '3000201'
+ and coalesce(A.SKU, B.ProductCode, C.ProductCode) = 'MBKSIBL'
+--and PMCode != '?????'
+*/
+ group by coalesce(A.Month, B.Pdate, C.PDATE), coalesce(A.PMCode, B.CustomerCode, C.CustomerCode), coalesce(A.SKU, B.ProductCode, C.ProductCode), C.Tier
+) t
+where t.PMCode != '?????'
+; 
 
 
 
@@ -221,26 +282,7 @@ and coalesce(A.SKU, B.ProductCode, C.ProductCode) = 'TEBLKPU'
 
 -- 디바이스 쿼리
 Select 
-      A.PDATE
-    , A.CHAIN_CODE
-    , E.KAChain
-    , A.CHAIN_OLTCODE
-    , E.CustomerCode
-    , E.CustomerName
-    , D.ProductDescription
-    , (A.SAL_QTY*C.SAL_QNT) as QTY
-    , E.MDBOCode
-    , E.MRZCode
-    , E.SRBOCode
-    , E.SRZCode
-    , E.CustomerStatus
-    , E.Cover
-    , E.City
-    , E.District
-    , E.Region
-    ,d.cigatype
-    ,d.cigadevice
-    ,d.Company
+ ProductDescription, ENGNAME , sum((A.SAL_QTY*C.SAL_QNT)) POS_Qty
 --into #temp123
 FROM KAPOS.dbo.POS_DATA A
     left JOIN KAPOS.dbo.POS_OLT_MAP    B ON B.CHAIN_CODE = A.CHAIN_CODE AND B.CHAIN_OLTCODE = A.CHAIN_OLTCODE
@@ -248,13 +290,14 @@ FROM KAPOS.dbo.POS_DATA A
     left JOIN   ISMSR.dbo.ProductLocalRpt D  on  C.MKTD_BRDCODE = D.SMARTSRCCode
     --Left JOIN [ISMSR].[dbo].[CustomerLocalRpt] E on B.pm_oltcode = E.CustomerCode
     --left join [CMRRPT].[dbo].[Corner_meta_working] F on E.customercode =  F.custcode and A.pdate = F.pdate
-Where a.pdate between '20230801' and '20230831'
+Where a.pdate between '20240901' and '20240931'
 --and f.corner_type is null('Corner','POPUP')--null은KA,Corner는 코너, POPUP은 G.SalesEvent
 --and d.cigatype = 'HNB'--Cigarrett 추출 시
 --and d.cigadevice = 'device' --/ 'Cigarettes'--Cigarrett 추출 시
 --and d.Company = 'KTG'--특정 회사 추출 시
 and d.ProductSubFamilyCode = 'MOBILITYKIT'--mobilitykit은 PMK의 디바이스만 나옴
 --and d.ProductCode = '10098541'--하나의 프로덕트만 구할 때
+group by ProductDescription, ENGNAME 
 ;
 
 

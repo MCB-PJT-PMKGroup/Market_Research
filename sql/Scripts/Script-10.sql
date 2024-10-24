@@ -306,3 +306,66 @@ group BY t.YYYYMM, ProductFamilyCode , b.company
 ;
 
 
+
+with temp as ( 
+	select * 
+	from ( 
+		select t.YYYYMM, t.id, a.SIDO_NM , gr_cd,
+		row_number() over(partition by t.YYYYMM, t.id  order by a.row_id desc) rn,
+		sum(pack_qty) over(partition by t.YYYYMM, t.id) qty 
+		from cu.cu_user_3month_list_incl_csv t
+			join cu.Fct_BGFR_PMI_Monthly a on a.id = t.id and t.YYYYMM  = a.YYYYMM 
+			join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE = 'CIGARETTES' and cigatype !='CSV'
+			join cu.dim_Regional_area c on a.SIDO_nm = c.sido_nm
+		where  t.YYYYMM >= '202401'
+	) as t
+	where rn = 1 -- gr_cd 마지막 구매지역
+	and qty > 1
+)
+select YYYYMM, count(distinct id) cnt
+from temp 
+group by YYYYMM;
+
+
+
+
+select distinct ProductFamilyCode , ProductSubFamilyCode , ProductDescription , Engname
+from cx.product_master 
+where ProductFamilyCode = 'ESSE';
+
+
+-- Sentia 구매이력 
+with temp as (
+	select YYYYMM, id 
+	from cx.fct_K7_Monthly a
+		join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' 
+	where ProductSubFamilyCode like 'SENTIA'
+	and YYYYMM = '202409'
+),
+purchasers as (
+	select b.Company , b.ProductFamilyCode , b.ProductSubFamilyCode , b.ProductDescription, b.engname, a.*
+	from temp t
+	join cx.fct_K7_Monthly a on t.id = a.id 
+		and a.YYYYMM < t.YYYYMM
+	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV'
+)
+select ProductSubFamilyCode, count(distinct id) n
+from purchasers
+group by  ProductSubFamilyCode
+order by ProductSubFamilyCode
+;
+
+
+select b.Company , b.ProductFamilyCode , b.ProductSubFamilyCode , b.ProductDescription, b.engname, a.*
+from cx.fct_K7_Monthly a
+	join cx.product_master b on a.product_code = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV'
+where id In (
+'51DE9CBC29993CF89FF17D99971587F4D597B752142C1DE07F90C54675565494',
+'752272A1D3975194A6A70CDE39D41CA7136F96617EA4E7CB2B79DE714CBF9313',
+'6065AB8B896FE839905E58FDEF23A4771FC99C863B1D000CDF40C46F888F1E67'
+
+)
+and ProductSubFamilyCode ='TEREA'
+;
+
+

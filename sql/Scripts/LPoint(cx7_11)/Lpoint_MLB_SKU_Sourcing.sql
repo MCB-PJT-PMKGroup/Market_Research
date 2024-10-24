@@ -275,7 +275,7 @@ with temp as (
 		b.New_TARSEGMENTAT,
 		b.THICKSEG,
 		sum(a.pack_qty) pack_qty,
-		max(cast( case when b.cigatype='CC'  and b.company = 'PMK' then 'PMK CC'    else '' end as varchar(50) )) 'PMK CC',
+		max(cast( case when b.cigatype='CC'  and b.company = 'PMK'  then 'PMK CC'   else '' end as varchar(50) )) 'PMK CC',
 		max(cast( case when b.cigatype='CC'  and b.company != 'PMK' then 'Comp CC'  else '' end as varchar(50) )) 'Comp CC'
 	from cx.agg_LPoint_MLB_SKU_Sourcing t
 		join cx.fct_K7_Monthly a on t.id = a.id 
@@ -294,8 +294,9 @@ with temp as (
 select YYYYMM, ProductFamilyCode, count(distinct id) n, sum(pack_qty) pack
 from temp 
 unpivot (usage_type for company in ([PMK CC], [Comp CC]) ) as unpivo
-where usage_type = 'PMK CC' and ProductFamilyCode = 'MLB'  --and engname like '%Vista%'
+where usage_type = 'Comp CC' and ProductFamilyCode = 'ESSE' -- and engname like '%CHANGE%'
 group by YYYYMM, ProductFamilyCode
+;
 
 
 
@@ -328,7 +329,8 @@ with temp as (
 select YYYYMM, engname, count(distinct id) n, sum(pack_qty) pack
 from temp 
 unpivot (usage_type for company in ([PMK CC], [Comp CC]) ) as unpivo
-where usage_type = 'PMK CC' and ProductFamilyCode = 'MLB'  --and engname like '%Vista%'
+where usage_type = 'Comp CC' and ProductFamilyCode = 'ESSE'  --and engname like '%Vista%'
+and YYYYMM = '202401'
 group by YYYYMM, engname
 ;
 

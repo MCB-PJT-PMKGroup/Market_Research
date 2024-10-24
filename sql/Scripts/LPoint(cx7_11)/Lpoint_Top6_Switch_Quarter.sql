@@ -1,5 +1,9 @@
 /*
+ * 	Top 6 스위칭 작업
+ *  20241024 작업 시작
+ * 	24Q2 vs 24Q3 분기 별 스위칭 작업 
  * 
+ *  ('202404', '202405', '202406', '202407', '202408', '202409')
  */
 ---------------------------------------------------------------------- 2023 4분기 vs 2024 1분기  --------------------------------------------------------------------------------------------
 
@@ -11,19 +15,20 @@ group by left(YYYYMM, 4), datepart(QUARTER,  CAST(YYYYMM+'01' AS DATE))
 having (left(YYYYMM, 4) = '2023' and datepart(QUARTER,  CAST(YYYYMM+'01' AS DATE)) = 4 ) or ( left(YYYYMM, 4) = '2024' and datepart(QUARTER,  CAST(YYYYMM+'01' AS DATE)) =1 )
 ;
 
--- CC 시장내 Top5 대상 : 38,386 rows
-insert into cx.agg_top6_Switch_23Q4_24Q1
+-- 스위칭 모수
+--insert into cx.agg_top6_Switch_23Q4_24Q1
+--insert into cx.agg_top6_Switch_24Q2_24Q3
 SELECT 
 	a.id,
 	b.ProductFamilyCode, 
-	sum(case when a.YYYYMM between '202310' and '202312' then  a.pack_qty else 0 end) as [Out],
-	sum(case when a.YYYYMM between '202401' and '202403' then  a.pack_qty else 0 end) as [In]
+	sum(case when a.YYYYMM between '202404' and '202406' then  a.pack_qty else 0 end) as [Out],
+	sum(case when a.YYYYMM between '202407' and '202409' then  a.pack_qty else 0 end) as [In]
 --into cx.agg_top6_Switch_23Q4_24Q1
 FROM 
     cx.fct_K7_Monthly a
     	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)
 where 1=1
-   	and a.YYYYMM in ('202310', '202311', '202312', '202401', '202402', '202403')
+   	and a.YYYYMM in ('202404', '202405', '202406', '202407', '202408', '202409')
    	-- Top 5 제품군 대상
 	and ProductFamilyCode = 'RAISON'-- in ('ESSE', 'DUNHILL', 'MEVIUS', 'MLB' , 'RAISON') PLT 추가
     --2023 Q4, 2024 Q1년 모두 구매한 사람은 제외
@@ -33,40 +38,40 @@ where 1=1
         FROM cx.fct_K7_Monthly x
         	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
 		where 1=1
-		   	and x.YYYYMM in ('202310', '202311', '202312', '202401', '202402', '202403')
+		   	and x.YYYYMM in  ('202404', '202405', '202406', '202407', '202408', '202409')
 			and y.ProductFamilyCode = b.ProductFamilyCode
 		GROUP BY 
 		    y.ProductFamilyCode, x.id
 		HAVING 
 		    -- 2023 Q4, 2024 Q1 모두 구매한 사람
-		    (SUM(CASE WHEN x.YYYYMM between '202310' and '202312' THEN 1 ELSE 0 END) > 0
-		    AND SUM(CASE WHEN x.YYYYMM between '202401' and '202403' THEN 1 ELSE 0 END) > 0)
+		    (SUM(CASE WHEN x.YYYYMM between '202404' and '202406' THEN 1 ELSE 0 END) > 0
+		    AND SUM(CASE WHEN x.YYYYMM between '202407' and '202409' THEN 1 ELSE 0 END) > 0)
 	)
 GROUP BY 
      a.id ,b.ProductFamilyCode
 HAVING
     -- Out :  2023 Q4 에 구매했지만, 2024 Q1도에는 해당 제품을 구매하지 않아 Out
-	(SUM(CASE WHEN  a.YYYYMM between '202310' and '202312' THEN 1 ELSE 0 END) > 0
-	and SUM(CASE WHEN  a.YYYYMM between '202401' and '202403' THEN 1 ELSE 0 END) = 0
+	(SUM(CASE WHEN  a.YYYYMM between '202404' and '202406' THEN 1 ELSE 0 END) > 0
+	and SUM(CASE WHEN  a.YYYYMM between '202407' and '202409' THEN 1 ELSE 0 END) = 0
     AND EXISTS (
 		-- 2024 Q1에는 다른 제품을 구매한 사람
 	    SELECT 1
 	    FROM cx.fct_K7_Monthly x
 	    	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
-	    where a.id = x.id and x.YYYYMM between '202401' and '202403'
+	    where a.id = x.id and x.YYYYMM between '202407' and '202409'
 		and y.ProductFamilyCode != b.ProductFamilyCode
     	)
 	)
 	OR
     -- In :  2023 Q4 구매하지 않고, 2024 Q1도에는 해당 제품을 구매하여 IN
-    (SUM(CASE WHEN  a.YYYYMM between '202401' and '202403' THEN 1 ELSE 0 END) > 0
-    AND SUM(CASE WHEN a.YYYYMM between '202310' and '202312' THEN 1 ELSE 0 END) = 0 
+    (SUM(CASE WHEN  a.YYYYMM between '202407' and '202409' THEN 1 ELSE 0 END) > 0
+    AND SUM(CASE WHEN a.YYYYMM between '202404' and '202406' THEN 1 ELSE 0 END) = 0 
     AND EXISTS (
     	-- 2023 Q4에 다른 제품을 구매한 사람
 	    SELECT 1
 	    FROM cx.fct_K7_Monthly x
 	    	join cx.product_master_temp y on x.product_code = y.PROD_ID and y.CIGADEVICE =  'CIGARETTES' AND  y.cigatype != 'CSV' AND 4 < LEN(x.id)
-	    where a.id = x.id and x.YYYYMM between '202310' and '202312'
+	    where a.id = x.id and x.YYYYMM between '202404' and '202406'
 	    and y.ProductFamilyCode != b.ProductFamilyCode 
     	)
     )
@@ -102,7 +107,7 @@ select
 from 
 	cx.agg_top6_Switch_23Q4_24Q1 t
 		join cx.fct_K7_Monthly a on a.id = t.id AND 4 < LEN(a.id) 
-			and a.YYYYMM in ('202310', '202311', '202312', '202401', '202402', '202403')
+			and a.YYYYMM in ('202404', '202405', '202406', '202407', '202408', '202409')
 		join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' AND b.cigatype != 'CSV' 
 			and t.ProductFamilyCode != b.ProductFamilyCode
 WHERE t.ProductFamilyCode = 'PLT'
@@ -125,7 +130,7 @@ select
 	sum(case when a.YYYYMM between '202310' and '202312' and t.[In] > 0 then a.Pack_qty else 0 end ) as In_Quantity
 from cx.agg_top6_Switch_23Q4_24Q1  t
 	join cx.fct_K7_Monthly a on t.id = a.id and 4 < len(a.id) 
-		and a.YYYYMM in ('202310', '202311', '202312', '202401', '202402', '202403')
+		and a.YYYYMM in  ('202404', '202405', '202406', '202407', '202408', '202409')
 	join cx.product_master_temp b on a.Product_code = b.prod_id and b.CIGADEVICE ='CIGARETTES' and b.CIGATYPE != 'CSV' 	
 		AND b.ProductFamilyCode != t.ProductFamilyCode
 WHERE t.ProductFamilyCode = 'PLT'
@@ -148,7 +153,7 @@ FROM
     	join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND  b.cigatype != 'CSV' AND 4 < LEN(a.id)   
     	AND b.ProductFamilyCode = 'PLT'
 where 1=1
-   	and a.YYYYMM in ('202310', '202311', '202312', '202401', '202402', '202403')
+   	and a.YYYYMM in ('202404', '202405', '202406', '202407', '202408', '202409')
 GROUP BY 
 	ProductFamilyCode, left(a.YYYYMM, 4), datepart(QUARTER,  CAST(YYYYMM+'01' AS DATE))
 ;
@@ -166,7 +171,7 @@ select
 from 
 	cx.agg_top6_Switch_23Q4_24Q1 t
 		join cx.fct_K7_Monthly a on a.id = t.id AND 4 < LEN(a.id) 
-			and a.YYYYMM in ('202310', '202311', '202312', '202401', '202402', '202403')
+			and a.YYYYMM in ('202404', '202405', '202406', '202407', '202408', '202409')
 		join cx.product_master_temp b on a.product_code = b.PROD_ID and b.CIGADEVICE = 'CIGARETTES' AND b.cigatype != 'CSV' 
 			and t.ProductFamilyCode = b.ProductFamilyCode
 where t.ProductFamilyCode = 'PLT'		

@@ -533,7 +533,7 @@ group by YYYYMM, SIDO_NM,
 -- 엑셀 시트 Gr Region 작업
 
 -- gender, age  by purchasers
-select t.YYYYMM, gr_cd,
+select t.YYYYMM, COALESCE(gr_cd, '합계') 'Gr Region',
 	count(*) total_Purchaser_cnt, 
 	count(case when t.gender ='1' then 1 end ) 'Male',
 	count(case when t.gender ='2' then 1 end ) 'Female',
@@ -545,13 +545,17 @@ select t.YYYYMM, gr_cd,
 from cu.agg_CU_TEREA_Total_Sourcing  t
 	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
 where t.YYYYMM >= '202401'
-group by t.YYYYMM, gr_cd
-order by t.YYYYMM, gr_cd;
-
+group by
+	grouping sets (
+	(t.YYYYMM, gr_cd), 
+	(t.YYYYMM) 
+	)
+order by YYYYMM, 'Gr Region'
+;
 
 -- Cigatype, Taste Total (Taste는 구매자 수가 다를 수 있음. 한 사람이 여러 Taste를 구매)
 select 
-	t.YYYYMM, gr_cd  ,
+	t.YYYYMM,  COALESCE(gr_cd, '합계') 'Gr Region',
 	count(distinct t.id) total_Purchaser_Cnt,
 	count(distinct case when t.cigatype ='CC' then t.id end ) 'CC',
 	count(distinct case when t.cigatype ='HnB' then t.id end ) 'HnB',
@@ -572,14 +576,18 @@ from  cu.agg_CU_TEREA_Total_Sourcing t
 	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and CIGADEVICE =  'CIGARETTES' AND b.cigatype != 'CSV'
 	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
 where t.YYYYMM >= '202401'
-group BY t.YYYYMM, gr_cd
-order by t.YYYYMM, gr_cd
+group by
+	grouping sets (
+	(t.YYYYMM, gr_cd), 
+	(t.YYYYMM) 
+	)
+order by YYYYMM, 'Gr Region'
 ;
 
 
 
 -- PMO Qty, CC Taste, HnB Taste, IQOS Qty
-SELECT YYYYMM, gr_cd,
+SELECT YYYYMM, COALESCE(gr_cd, '합계') 'Gr Region',
     SUM([BAT]) AS BAT,
     SUM([JTI]) AS JTI,
     SUM([KTG]) AS KTG,
@@ -643,8 +651,12 @@ SELECT YYYYMM, gr_cd,
 FROM cu.agg_CU_TEREA_Total_Sourcing t
 	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
 where t.YYYYMM >= '202401'
-GROUP BY YYYYMM, gr_cd
-ORDER BY YYYYMM, gr_cd
+group by
+	grouping sets (
+	(t.YYYYMM, gr_cd), 
+	(t.YYYYMM) 
+	)
+order by YYYYMM, 'Gr Region'
 ;
 
 
@@ -654,7 +666,7 @@ ORDER BY YYYYMM, gr_cd
 -- TEREA flavorXtar from 202211
 select  
 	t.YYYYMM,
-	gr_cd,
+	COALESCE(gr_cd, '합계') 'Gr Region',
 	concat(FLAVORSEG_type3,' X ', New_TARSEGMENTAT) flavorXtar,
 	count(distinct case when b.cigatype ='CC' then t.id end) CC,
 	count(distinct case when b.cigatype ='HnB' then t.id end) HnB
@@ -665,10 +677,12 @@ from  cu.agg_CU_TEREA_Total_Sourcing t
 	join cu.dim_product_master b on a.ITEM_CD = b.PROD_ID and b.CIGADEVICE =  'CIGARETTES' AND b.cigatype != 'CSV'  
 	join cu.dim_Regional_area c on t.SIDO_nm = c.sido_nm
 where t.YYYYMM >= '202401'
-group BY 
-	t.YYYYMM,
-	gr_cd,
-	concat(FLAVORSEG_type3,' X ', New_TARSEGMENTAT) 
+group by
+	grouping sets (
+	(t.YYYYMM, gr_cd, concat(FLAVORSEG_type3,' X ', New_TARSEGMENTAT) ), 
+	(t.YYYYMM, concat(FLAVORSEG_type3,' X ', New_TARSEGMENTAT) ) 
+	)
+order by YYYYMM, 'Gr Region' 
 ;
 
 
